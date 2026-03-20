@@ -1,5 +1,11 @@
+// Copyright (c) 2026 [graefemeister]
+// This software is released under the GNU General Public License v3.0.
+// https://www.gnu.org/licenses/gpl-3.0.html
+
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart'; // Diese Zeile fehlt!
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
@@ -7,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+
 
 import 'train_core.dart'; 
 import 'train_manager.dart';
@@ -17,6 +24,12 @@ import 'readme_screen.dart';
 import 'localization.dart';
 
 void main() async {
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(
+      ['NoppenExpress'],
+      'GNU General Public License v3.0\n\nCopyright (C) 2026 [graefemeister]...',
+    );
+  });
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized(); 
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   L10n.lang = await SettingsManager.loadLanguage();
@@ -231,20 +244,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
       applicationLegalese: "© 2026 graefemeister@gmail.com",
       children: [
         const SizedBox(height: 16),
-        const Text("NoppenExpress - Hobbyprojekt für Klemmbausteinfreunde"),
+        const Text("Ein freies Hobbyprojekt für Klemmbausteinfreunde.\nLizenziert unter GNU GPL v3."),
         const SizedBox(height: 24),
         ElevatedButton.icon(
           onPressed: () async {
-            final Uri url = Uri.parse('https://github.com/graefemeister'); 
+            // Direkt zum Repo, falls der Name so stimmt:
+            final Uri url = Uri.parse('https://github.com/graefemeister/NoppenExpress'); 
             if (!await launchUrl(url, mode: LaunchMode.externalApplication)) debugPrint('Fehler');
           },
           icon: const Icon(Icons.code),
-          label: const Text("Projekt auf GitHub unterstützen"),
-          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF24292E), foregroundColor: Colors.white),
+          label: const Text("Quellcode auf GitHub ansehen"),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF24292E), 
+            foregroundColor: Colors.white,
+            elevation: 0, // Wirkt oft moderner/schlichter
+          ),
         ),
       ],
     );
-  }
+}
 
   void _openWorkshop({TrainController? trainToEdit}) async {
     final TrainController? result = await Navigator.push(
