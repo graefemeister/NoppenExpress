@@ -113,8 +113,9 @@ class L10n {
       'display_always_on': 'Keep Display On',
       'design_theme': 'Design (Dark Mode)',
       'theme_system': 'System',
-      'theme_
-      ang_changed': 'Language changed',
+      'theme_light': 'light',
+      'theme_dark': 'dark',
+      'lang_changed': 'Language changed',
       'light_b': 'Light B',
       'light_c': 'Light C',
       'protocol_mk_modern': 'Mould King (Modern / BLE)',

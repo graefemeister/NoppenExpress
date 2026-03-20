@@ -156,7 +156,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   const Icon(Icons.link_off, color: Colors.white),
                   const SizedBox(width: 12),
-                  Expanded(child: Text("Verbindung zu '${train.name}' verloren!", style: const TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(
+                    child: Text(
+                      // Wir holen den übersetzten Teil und hängen den Namen an
+                      "${'connection_lost'.tr} '${train.name}'", 
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ],
               ),
               backgroundColor: Colors.red.shade800,
