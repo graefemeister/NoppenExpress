@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "steuerzentrale_ble" "\0"
+            VALUE "CompanyName", "de.graefemeister" "\0"
+            VALUE "FileDescription", "NoppenExpress" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "steuerzentrale_ble" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "steuerzentrale_ble.exe" "\0"
-            VALUE "ProductName", "steuerzentrale_ble" "\0"
+            VALUE "InternalName", "NoppenExpress" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 de.graefemeister. All rights reserved." "\0"
+            VALUE "OriginalFilename", "NoppenExpress.exe" "\0"
+            VALUE "ProductName", "NoppenExpress" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

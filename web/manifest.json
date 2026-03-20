@@ -1,6 +1,6 @@
 {
-    "name": "steuerzentrale_ble",
-    "short_name": "steuerzentrale_ble",
+    "name": "NoppenExpress",
+    "short_name": "NoppenExpress",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -1,4 +1,4 @@
-package com.example.steuerzentrale_ble
+package de.graefemeister.NoppenExpress
 
 import io.flutter.embedding.android.FlutterActivity
 
