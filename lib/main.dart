@@ -380,51 +380,86 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       body: !_permissionsGranted 
-          ? const Center(child: Text("Berechtigungen fehlen"))
-          : _isLoading 
-              ? const Center(child: CircularProgressIndicator()) 
-              : Row(
-                  children: [
-                    Container(
-                      width: 300,
-                      color: Theme.of(context).cardColor,
-                      child: sortedList.isEmpty 
-                        ? Center(child: Padding(padding: const EdgeInsets.all(20), child: Text('no_trains'.tr, textAlign: TextAlign.center)))
-                        : ListView.separated(
-                            itemCount: sortedList.length,
-                            separatorBuilder: (context, index) => const Divider(height: 1),
-                            itemBuilder: (context, index) {
-                              final train = sortedList[index];
-                              return ListTile(
-                                leading: ClipRRect(borderRadius: BorderRadius.circular(6), child: SizedBox(width: 70, height: 44, child: train.imagePath.isEmpty ? Container(color: Colors.grey.shade200, child: const Icon(Icons.train)) : (train.imagePath.startsWith('assets/') ? Image.asset(train.imagePath, fit: BoxFit.cover) : Image.file(File(train.imagePath), fit: BoxFit.cover)))),
-                                title: Text(train.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                subtitle: Row(children: [Container(width: 8, height: 8, decoration: BoxDecoration(color: train.isRunning ? Colors.green : Colors.red, shape: BoxShape.circle)), const SizedBox(width: 4), Text(train.isRunning ? 'online'.tr : 'offline'.tr, style: const TextStyle(fontSize: 10))]),
-                                selected: _selectedTrain == train,
-                                onTap: () => setState(() => _selectedTrain = train),
-                                onLongPress: () {
-                                   showModalBottomSheet(
-                                    context: context,
-                                    builder: (ctx) => Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        ListTile(leading: const Icon(Icons.edit), title: Text('edit'.tr), onTap: () { Navigator.pop(ctx); _openWorkshop(trainToEdit: train); }),
-                                        ListTile(leading: const Icon(Icons.delete, color: Colors.red), title: Text('delete'.tr, style: const TextStyle(color: Colors.red)), onTap: () { Navigator.pop(ctx); _deleteTrain(train); }),
-                                      ],
-                                    ),
-                                  );
-                                },
+    ? const Center(child: Text("Berechtigungen fehlen"))
+    : _isLoading 
+        ? const Center(child: CircularProgressIndicator()) 
+        : Row(
+            children: [
+              // LINKER TEIL: Die Lokliste (jetzt flexibel statt festen 300px)
+              Expanded(
+                flex: 3, // Nimmt ca. 30% der Breite ein
+                child: Container(
+                  color: Theme.of(context).cardColor,
+                  child: sortedList.isEmpty 
+                    ? Center(child: Padding(padding: const EdgeInsets.all(20), child: Text('no_trains'.tr, textAlign: TextAlign.center)))
+                    : ListView.separated(
+                        itemCount: sortedList.length,
+                        separatorBuilder: (context, index) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final train = sortedList[index];
+                          return ListTile(
+                            dense: true, // Macht das Element flacher
+                            visualDensity: VisualDensity.compact, // Rückt alles enger zusammen
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                            leading: ClipRRect(
+                              borderRadius: BorderRadius.circular(4), 
+                              child: SizedBox(
+                                width: 50, // Kleineres Vorschaubild (vorher 70)
+                                height: 32, // (vorher 44)
+                                child: train.imagePath.isEmpty 
+                                    ? Container(color: Colors.grey.shade200, child: const Icon(Icons.train, size: 20)) 
+                                    : (train.imagePath.startsWith('assets/') 
+                                        ? Image.asset(train.imagePath, fit: BoxFit.cover) 
+                                        : Image.file(File(train.imagePath), fit: BoxFit.cover)),
+                              ),
+                            ),
+                            title: Text(
+                              train.name, 
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              overflow: TextOverflow.ellipsis, // Verhindert Umbrüche bei langen Namen
+                              maxLines: 1,
+                            ),
+                            subtitle: Row(
+                              children: [
+                                Container(width: 6, height: 6, decoration: BoxDecoration(color: train.isRunning ? Colors.green : Colors.red, shape: BoxShape.circle)), 
+                                const SizedBox(width: 4), 
+                                Text(train.isRunning ? 'online'.tr : 'offline'.tr, style: const TextStyle(fontSize: 9))
+                              ],
+                            ),
+                            selected: _selectedTrain == train,
+                            onTap: () => setState(() => _selectedTrain = train),
+                            onLongPress: () {
+                               showModalBottomSheet(
+                                context: context,
+                                builder: (ctx) => Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    ListTile(leading: const Icon(Icons.edit), title: Text('edit'.tr), onTap: () { Navigator.pop(ctx); _openWorkshop(trainToEdit: train); }),
+                                    ListTile(leading: const Icon(Icons.delete, color: Colors.red), title: Text('delete'.tr, style: const TextStyle(color: Colors.red)), onTap: () { Navigator.pop(ctx); _deleteTrain(train); }),
+                                  ],
+                                ),
                               );
                             },
-                          ),
-                    ),
-                    const VerticalDivider(width: 1),
-                    Expanded(
-                      child: _selectedTrain == null
-                          ? Center(child: Text('select_train'.tr))
-                          : TrainControlPanel(key: ValueKey(_selectedTrain!.config.id), train: _selectedTrain!, onStateChanged: () => setState(() {})),
-                    ),
-                  ],
+                          );
+                        },
+                      ),
                 ),
+              ),
+              const VerticalDivider(width: 1),
+              
+              // RECHTER TEIL: Das Steuerpult (nimmt den Rest ein)
+              Expanded(
+                flex: 7, // Nimmt ca. 70% der Breite ein
+                child: _selectedTrain == null
+                    ? Center(child: Text('select_train'.tr))
+                    : TrainControlPanel(
+                        key: ValueKey(_selectedTrain!.config.id), 
+                        train: _selectedTrain!, 
+                        onStateChanged: () => setState(() {})
+                      ),
+              ),
+            ],
+          ),
     );
   }
 }

@@ -84,9 +84,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   Slider(
                     value: _currentScale,
-                    min: 0.8,
-                    max: 1.4,
-                    divisions: 6,
+                    min: 0.5,
+                    max: 1.5,
+                    divisions: 10,
                     onChanged: (val) {
                       setState(() => _currentScale = val);
                       SettingsManager.saveScale(val);
