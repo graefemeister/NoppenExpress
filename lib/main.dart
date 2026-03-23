@@ -232,7 +232,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     showAboutDialog(
       context: context,
       applicationName: "NoppenExpress",
-      applicationVersion: "Version 1.8.6",
+      applicationVersion: "Version 1.9.0",
       applicationIcon: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Image.asset(
@@ -518,40 +518,176 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
   @override
   Widget build(BuildContext context) {
     bool isConnected = widget.train.isRunning;
+    final config = widget.train.config;
+    final isLego = config.protocol == 'lego_hub';
+
     return Stack(
       children: [
+        // --- HINTERGRUND-BILD ---
         Positioned.fill(
           child: Opacity(
             opacity: 0.6,
-            child: widget.train.imagePath.isEmpty
+            child: config.imagePath.isEmpty
                 ? const Icon(Icons.train, size: 200)
-                : (widget.train.imagePath.startsWith('assets/')
-                    ? Image.asset(widget.train.imagePath, fit: BoxFit.cover)
-                    : Image.file(File(widget.train.imagePath), fit: BoxFit.cover)),
+                : (config.imagePath.startsWith('assets/')
+                    ? Image.asset(config.imagePath, fit: BoxFit.cover)
+                    : Image.file(File(config.imagePath), fit: BoxFit.cover)),
           ),
         ),
-        Positioned.fill(child: Container(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Theme.of(context).scaffoldBackgroundColor.withOpacity(0.1), Theme.of(context).scaffoldBackgroundColor], stops: const [0.4, 0.9])))),
+        // --- GRADIENT FÜR LESBARKEIT ---
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Theme.of(context).scaffoldBackgroundColor.withOpacity(0.1),
+                  Theme.of(context).scaffoldBackgroundColor
+                ],
+                stops: const [0.4, 0.9],
+              ),
+            ),
+          ),
+        ),
+        
+        // --- HAUPT-UI ---
         SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // HEADER: Name & Protokoll
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(widget.train.name, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold)), Text(() { switch (widget.train.config.protocol) { case 'mould_king': return 'Mould King (Modern)'; case 'lego_hub': return 'LEGO Powered Up'; case 'circuit_cube': return 'Circuit Cube'; default: return 'Unbekanntes Protokoll'; } }(), style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.primary.withOpacity(0.8), fontWeight: FontWeight.w500))])),
-                  SizedBox(height: 60, width: 220, child: ElevatedButton.icon(onPressed: _isConnecting ? null : _toggleConnection, icon: Icon(isConnected ? Icons.link_off : Icons.link), label: Text(isConnected ? 'disconnect'.tr : 'connect'.tr, style: const TextStyle(fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: isConnected ? Colors.red.shade700 : Colors.green.shade700, foregroundColor: Colors.white))),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start, 
+                      children: [
+                        Text(widget.train.name, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold)), 
+                        Text(
+                          () {
+                            switch (config.protocol) {
+                              case 'mould_king': return 'Mould King (Modern)';
+                              case 'lego_hub': return 'LEGO Powered Up';
+                              case 'circuit_cube': return 'Circuit Cube';
+                              default: return 'Unbekanntes Protokoll';
+                            }
+                          }(),
+                          style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.primary.withOpacity(0.8), fontWeight: FontWeight.w500)
+                        )
+                      ]
+                    )
+                  ),
+                  SizedBox(
+                    height: 60, 
+                    width: 220, 
+                    child: ElevatedButton.icon(
+                      onPressed: _isConnecting ? null : _toggleConnection, 
+                      icon: Icon(isConnected ? Icons.link_off : Icons.link), 
+                      label: Text(isConnected ? 'disconnect'.tr : 'connect'.tr, style: const TextStyle(fontWeight: FontWeight.bold)), 
+                      style: ElevatedButton.styleFrom(backgroundColor: isConnected ? Colors.red.shade700 : Colors.green.shade700, foregroundColor: Colors.white)
+                    )
+                  ),
                 ],
               ),
+              
               const SizedBox(height: 40),
+              
+              // FAHRSTUFEN (V & R)
               Row(children: [_buildGearButton("V1", 1, true), _buildGearButton("V2", 2, true), _buildGearButton("V3", 3, true), _buildGearButton("V4", 4, true)]),
               const SizedBox(height: 12),
               Row(children: [_buildGearButton("R1", 1, false), _buildGearButton("R2", 2, false), _buildGearButton("R3", 3, false), _buildGearButton("R4", 4, false)]),
+              
               const SizedBox(height: 24),
-              Row(children: [Expanded(child: ElevatedButton.icon(onPressed: () => _setGear(0, true, "0"), icon: const Icon(Icons.pause_circle_filled, size: 28), label: Text('halt'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 20), backgroundColor: Colors.orange.shade400, foregroundColor: Colors.white))), const SizedBox(width: 16), Expanded(child: ElevatedButton.icon(onPressed: () { widget.train.emergencyStop(); setState(() { _currentGearText = "0"; }); }, icon: const Icon(Icons.warning_amber_rounded, size: 28), label: Text('stop'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 20), backgroundColor: Colors.red.shade800, foregroundColor: Colors.white)))]),
-              if (widget.train.config.notes.isNotEmpty) ...[const SizedBox(height: 32), Container(width: double.infinity, padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Theme.of(context).brightness == Brightness.dark ? Colors.amber.withOpacity(0.15) : Colors.amber.shade50.withOpacity(0.9), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.amber.withOpacity(0.3))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Icon(Icons.description_outlined, size: 16, color: Colors.orange), const SizedBox(width: 8), Text('notes_header'.tr, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.orange))]), const SizedBox(height: 8), Text(widget.train.config.notes, style: const TextStyle(fontSize: 16, height: 1.5))]))],
-              const SizedBox(height: 32), const Divider(), const SizedBox(height: 16),
-              Row(children: [Text('accessories'.tr, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)), const SizedBox(width: 16), FilterChip(label: Text('light_b'.tr), selected: widget.train.lightB > 0, onSelected: (val) { widget.train.setLight('B', val); setState(() {}); }), const SizedBox(width: 8), FilterChip(label: Text('light_c'.tr), selected: widget.train.lightC > 0, onSelected: (val) { widget.train.setLight('C', val); setState(() {}); }), const Spacer(), ActionChip(avatar: const Icon(Icons.swap_horiz, size: 18), label: Text('invert'.tr), backgroundColor: widget.train.inverted ? Colors.orange.withOpacity(0.4) : null, onPressed: () { widget.train.toggleInverted(); setState(() {}); })]),
+              
+              // HALT & STOP
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: isConnected ? () => _setGear(0, true, "0") : null, 
+                      icon: const Icon(Icons.pause_circle_filled, size: 28), 
+                      label: Text('halt'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), 
+                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 20), backgroundColor: Colors.orange.shade400, foregroundColor: Colors.white)
+                    )
+                  ), 
+                  const SizedBox(width: 16), 
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: isConnected ? () { widget.train.emergencyStop(); setState(() { _currentGearText = "0"; }); } : null, 
+                      icon: const Icon(Icons.warning_amber_rounded, size: 28), 
+                      label: Text('stop'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), 
+                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 20), backgroundColor: Colors.red.shade800, foregroundColor: Colors.white)
+                    )
+                  )
+                ]
+              ),
+              
+              // NOTIZEN
+              if (config.notes.isNotEmpty) ...[
+                const SizedBox(height: 32), 
+                Container(
+                  width: double.infinity, 
+                  padding: const EdgeInsets.all(16), 
+                  decoration: BoxDecoration(color: Theme.of(context).brightness == Brightness.dark ? Colors.amber.withOpacity(0.15) : Colors.amber.shade50.withOpacity(0.9), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.amber.withOpacity(0.3))), 
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start, 
+                    children: [
+                      Row(children: [const Icon(Icons.description_outlined, size: 16, color: Colors.orange), const SizedBox(width: 8), Text('notes_header'.tr, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.orange))]), 
+                      const SizedBox(height: 8), 
+                      Text(config.notes, style: const TextStyle(fontSize: 16, height: 1.5))
+                    ]
+                  )
+                )
+              ],
+              
+              const SizedBox(height: 32), 
+              const Divider(), 
+              const SizedBox(height: 16),
+              
+              // --- ZUBEHÖR (DYNAMIC LIGHTS) ---
+              Row(
+                children: [
+                  Text('accessories'.tr, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                  const SizedBox(width: 16),
+                  
+                  // PORT B LOGIK
+                  if (!isLego || (isLego && config.portSettings['B'] == 'light'))
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: FilterChip(
+                        label: Text('light_b'.tr), 
+                        selected: widget.train.lightB > 0, 
+                        onSelected: isConnected ? (val) { widget.train.setLight('B', val); setState(() {}); } : null,
+                      ),
+                    ),
+
+                  // PORT C LOGIK (Nur wenn kein LEGO)
+                  if (!isLego)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: FilterChip(
+                        label: Text('light_c'.tr), 
+                        selected: widget.train.lightC > 0, 
+                        onSelected: isConnected ? (val) { widget.train.setLight('C', val); setState(() {}); } : null,
+                      ),
+                    ),
+                    
+                  const Spacer(),
+                  
+                  // INVERTIEREN (Immer da)
+                  ActionChip(
+                    avatar: const Icon(Icons.swap_horiz, size: 18), 
+                    label: Text('invert'.tr), 
+                    backgroundColor: widget.train.inverted ? Colors.orange.withOpacity(0.4) : null, 
+                    onPressed: () { widget.train.toggleInverted(); setState(() {}); }
+                  )
+                ]
+              ),
+              // Puffer für Scroll-Freiheit (besonders wichtig wegen des FAB in der Main)
+              const SizedBox(height: 80),
             ],
           ),
         ),

@@ -59,9 +59,21 @@ class L10n {
       'lang_changed': 'Sprache geändert',
       'light_b': 'Licht B',
       'light_c': 'Licht C',
+      'label_choose_protocol': 'Protokoll wählen',
       'protocol_mk_modern': 'Mould King (Modern / BLE)',
-      'protocol_mk_classic': 'Mould King (Classic / Dino)',
+      'protocol_mk_classic': 'Mould King (Classic / Broadcast)',
       'unknown_device': 'Unbekanntes Gerät',
+      'port_motor': 'Motor',
+      'port_motor_inv': 'Motor (Invertiert)',
+      'port_light': 'Licht',
+      'port_none': 'Nichts',
+      'label_protocol': 'Protokoll',
+      // Protokollvoreinstellungen
+      'template_lego_hub': "Standard-Belegung:\n• Port A: Antrieb\n• Port B: Licht/Motor\nVerbindung: BLE-Scan.",
+      'template_mould_king': "Standard-Belegung:\n• Port A: Antrieb\n• Port B/C: Licht (Auto-Light)\n• Port D: evt. 2. Antrieb (invertiert)\nVerbindung: BLE-Scan.",
+      'template_mould_king_classic': "Standard-Belegung:\n• Port A: Antrieb\n• Port B/C: Licht (Auto-Light)\n Port D: evt. 2. Antrieb (invertiert)\nVerbindung: Broadcast-Modus.",
+      'template_circuit_cube': "Belegung:\n• Port A: Antrieb\n• Port B/C: Licht (Auto-Light)\nVerbindung: BLE-Scan.",
+  
     },
     'en': {
       'connect': 'CONNECT',
@@ -118,9 +130,20 @@ class L10n {
       'lang_changed': 'Language changed',
       'light_b': 'Light B',
       'light_c': 'Light C',
+      'label_choose_protocol': 'Choose Protocol',
       'protocol_mk_modern': 'Mould King (Modern / BLE)',
-      'protocol_mk_classic': 'Mould King (Classic / Dino)',
+      'protocol_mk_classic': 'Mould King (Classic / Broadcast)',
       'unknown_device': 'Unknown Device',
+      'port_motor': 'Motor',
+      'port_motor_inv': 'Motor (Inverted)',
+      'port_light': 'Light',
+      'port_none': 'None',
+      'label_protocol': 'Protocol', 
+      // Templates
+      'template_lego_hub': "Standard Assignment:\n• Port A: Drive\n• Port B: Light/Drive\nConnection: BLE-Scan. ",
+      'template_mould_king': "Standard Assignment:\n• Port A: Drive\n• Port B/C: Light (Auto-Light)\n• Port D: poss. 2nd Drive (inverted)\nConnection: BLE-Scan. ",
+      'template_mould_king_classic': "Standard Assignment:\n• Port A: Drive\n• Port B/C: Licht (Auto-Light)\n Port D: evt. 2. Antrieb (invertiert)\nConnection: Broadcast.",
+      'template_circuit_cube': "Assignment:\n• Port A: Drive\n• Port B/C: Light (Auto-Light)",
     }
   };
 

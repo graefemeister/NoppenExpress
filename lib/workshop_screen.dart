@@ -24,10 +24,10 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
   final _macController = TextEditingController();
   final _notesController = TextEditingController();
   
-  String _selectedProtocol = 'mould_king';
+  // KORREKTUR: Initial auf null setzen für den "Wähl mich"-Zustand
+  String? _selectedProtocol;
   String _imagePath = "";
   
-  // Tuning-Werte
   double _v1 = 25.0, _v2 = 50.0, _v3 = 75.0, _v4 = 100.0;
   double _rampStep = 1.0;
   double _reverseLimit = 1.0; 
@@ -46,7 +46,7 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
       _nameController.text = config.name;
       _macController.text = config.mac;
       _notesController.text = config.notes;
-      _selectedProtocol = config.protocol;
+      _selectedProtocol = config.protocol; // Beim Editieren laden wir das Protokoll
       _imagePath = config.imagePath;
       _v1 = config.gears[1] ?? 25.0;
       _v2 = config.gears[2] ?? 50.0;
@@ -68,7 +68,14 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
     super.dispose();
   }
 
-  // --- LOGIK-METHODEN ---
+  String _getTemplateForProtocol(String protocol) {
+    switch (protocol) {
+      case 'lego_hub': return 'template_lego_hub'.tr;
+      case 'mould_king': return 'template_mould_king'.tr;
+      case 'circuit_cube': return 'template_circuit_cube'.tr;
+      default: return "";
+    }
+  }
 
   void _startScan() async {
     setState(() { _isScanning = true; _bleResults = []; });
@@ -83,17 +90,16 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
         }
       });
       await FlutterBluePlus.startScan(timeout: const Duration(seconds: 10));
-      await Future.delayed(const Duration(seconds: 10));
     } catch (e) {
       debugPrint("Scan Fehler: $e");
     } finally {
-      _scanSub?.cancel();
       if (mounted) setState(() => _isScanning = false);
     }
   }
 
   void _save() {
-    if (_nameController.text.isEmpty || _macController.text.isEmpty) {
+    // KORREKTUR: Validierung inklusive Protokoll-Check
+    if (_nameController.text.isEmpty || _macController.text.isEmpty || _selectedProtocol == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('msg_incomplete'.tr)));
       return;
     }
@@ -103,7 +109,7 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
       name: _nameController.text,
       mac: _macController.text.trim().toUpperCase(),
       imagePath: _imagePath,
-      protocol: _selectedProtocol,
+      protocol: _selectedProtocol!, // Sicher da oben geprüft
       notes: _notesController.text,
       gears: {0: 0, 1: _v1, 2: _v2, 3: _v3, 4: _v4},
       rampStep: _rampStep,
@@ -143,14 +149,12 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
     } catch (e) { debugPrint("Bildfehler: $e"); }
   }
 
-  // --- UI HELFER ---
-
-  Widget _buildSlider(String label, double value, double min, double max, Function(double) onChanged) {
+  Widget _buildSlider(String label, double value, double min, double max, Function(double) onChanged, {int? divisions}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(padding: const EdgeInsets.symmetric(horizontal: 12.0), child: Text("$label: ${value.toStringAsFixed(1)}", style: const TextStyle(fontWeight: FontWeight.bold))),
-        Slider(value: value, min: min, max: max, onChanged: onChanged),
+        Slider(value: value, min: min, max: max, divisions: divisions, label: value.toStringAsFixed(1), onChanged: onChanged),
       ],
     );
   }
@@ -161,18 +165,16 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
       child: DropdownButtonFormField<String>(
         value: _portSettings[portName] ?? 'none',
         decoration: InputDecoration(labelText: "Port $portName", border: const OutlineInputBorder(), isDense: true),
-        items: const [
-          DropdownMenuItem(value: 'motor', child: Text("Motor")),
-          DropdownMenuItem(value: 'motor_inv', child: Text("Motor (Invertiert)")),
-          DropdownMenuItem(value: 'light', child: Text("Licht")),
-          DropdownMenuItem(value: 'none', child: Text("Nichts")),
+        items: [
+          DropdownMenuItem(value: 'motor', child: Text('port_motor'.tr)),
+          DropdownMenuItem(value: 'motor_inv', child: Text('port_motor_inv'.tr)),
+          DropdownMenuItem(value: 'light', child: Text('port_light'.tr)),
+          DropdownMenuItem(value: 'none', child: Text('port_none'.tr)),
         ],
         onChanged: (v) => setState(() => _portSettings[portName] = v!),
       ),
     );
   }
-
-  // --- HAUPT BUILD METHODE ---
 
   @override
   Widget build(BuildContext context) {
@@ -183,16 +185,18 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
       child: Builder(
         builder: (tabContext) {
           return Scaffold(
+            floatingActionButton: FloatingActionButton.extended(
+              onPressed: _save,
+              backgroundColor: Colors.greenAccent.shade700,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.check_circle, size: 28),
+              label: Text(widget.trainToEdit == null ? 'workshop_add'.tr : 'workshop_edit'.tr),
+            ),
             body: NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) => [
                 SliverAppBar(
-                  pinned: false,
-                  floating: true, 
-                  snap: true,
+                  pinned: false, floating: true, snap: true,
                   title: Text(widget.trainToEdit == null ? 'workshop_add'.tr : 'workshop_edit'.tr),
-                  actions: [
-                    IconButton(onPressed: _save, icon: const Icon(Icons.check_circle, color: Colors.greenAccent, size: 32))
-                  ],
                   bottom: TabBar(
                     tabs: [
                       Tab(icon: const Icon(Icons.info_outline), text: 'tab_general'.tr),
@@ -216,24 +220,18 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
                             radius: isLandscape ? 40 : 60,
                             backgroundColor: Colors.blueGrey.shade100,
                             backgroundImage: _imagePath.isNotEmpty ? FileImage(File(_imagePath)) : null,
-                            child: _imagePath.isEmpty ? const Icon(Icons.add_a_photo, size: 30) : null,
+                            // KORREKTUR: Farbe auf dunkles blueGrey für maximalen Kontrast auf Hellgrau
+                            child: _imagePath.isEmpty ? Icon(Icons.add_a_photo, size: 30, color: Colors.blueGrey.shade800) : null,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      TextField(
-                        controller: _nameController, 
-                        decoration: InputDecoration(labelText: 'label_name'.tr, border: const OutlineInputBorder(), isDense: true)
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _macController, 
-                        decoration: InputDecoration(labelText: 'label_mac'.tr, border: const OutlineInputBorder(), isDense: true, hintText: "AC:3E:B1...")
-                      ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
+
                       DropdownButtonFormField<String>(
                         value: _selectedProtocol,
-                        decoration: InputDecoration(labelText: 'Protokoll', border: const OutlineInputBorder(), isDense: true),
+                        // KORREKTUR: Hint wird angezeigt, wenn value null ist
+                        hint: Text('label_choose_protocol'.tr),
+                        decoration: InputDecoration(labelText: 'label_protocol'.tr, border: const OutlineInputBorder(), isDense: true),
                         items: const [
                           DropdownMenuItem(value: 'lego_hub', child: Text('LEGO Powered Up')),
                           DropdownMenuItem(value: 'mould_king', child: Text('Mould King')),
@@ -247,16 +245,39 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
                             } else {
                               _portSettings['A'] = 'motor'; _portSettings['B'] = 'motor'; _portSettings['C'] = 'none';
                             }
+                            // Jetzt wird die Info IMMER beim Wechsel geladen
+                            _notesController.text = _getTemplateForProtocol(_selectedProtocol!);
                           });
                         },
                       ),
                       const SizedBox(height: 16),
+
                       TextField(
                         controller: _notesController, 
-                        maxLines: isLandscape ? 1 : 3, 
-                        decoration: InputDecoration(labelText: 'label_notes'.tr, border: const OutlineInputBorder(), isDense: true)
+                        minLines: 4, 
+                        maxLines: 8, 
+                        decoration: InputDecoration(
+                          labelText: 'label_notes'.tr, 
+                          border: const OutlineInputBorder(), 
+                          isDense: true, 
+                          alignLabelWithHint: true,
+                          hintText: "..."
+                        )
                       ),
-                      const SizedBox(height: 250),
+                      const SizedBox(height: 24),
+                      const Divider(),
+                      const SizedBox(height: 16),
+
+                      TextField(
+                        controller: _nameController, 
+                        decoration: InputDecoration(labelText: 'label_name'.tr, border: const OutlineInputBorder(), isDense: true)
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _macController, 
+                        decoration: InputDecoration(labelText: 'label_mac'.tr, border: const OutlineInputBorder(), isDense: true, hintText: "AC:3E:B1...")
+                      ),
+                      const SizedBox(height: 250), 
                     ],
                   ),
 
@@ -277,23 +298,12 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
                           leading: const Icon(Icons.bluetooth),
                           title: Text(r.device.platformName.isEmpty ? 'unknown_device'.tr : r.device.platformName),
                           subtitle: Text(r.device.remoteId.toString()),
-                          trailing: Text("${r.rssi} dBm", style: TextStyle(color: r.rssi < -80 ? Colors.red : Colors.green)),
                           onTap: () { 
                             _macController.text = r.device.remoteId.toString(); 
                             if (_nameController.text.isEmpty && r.device.platformName.isNotEmpty) {
                               _nameController.text = r.device.platformName;
                             }
                             DefaultTabController.of(tabContext).animateTo(0); 
-                            ScaffoldMessenger.of(tabContext).hideCurrentSnackBar();
-                            ScaffoldMessenger.of(tabContext).showSnackBar(
-                              SnackBar(
-                                content: Text('${r.device.platformName.isEmpty ? "Gerät" : r.device.platformName} ${'msg_selected'.tr}'),
-                                backgroundColor: Colors.blue.shade800,
-                                behavior: SnackBarBehavior.floating,
-                                width: 350,
-                                duration: const Duration(milliseconds: 1500),
-                              ),
-                            );
                           },
                         ),
                       )),
@@ -311,15 +321,13 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
                         const Divider(height: 40),
                       ],
                       Text('tuning_speed_levels'.tr, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                      _buildSlider("V1", _v1, 0, 100, (v) => setState(() => _v1 = v)),
-                      _buildSlider("V2", _v2, 0, 100, (v) => setState(() => _v2 = v)),
-                      _buildSlider("V3", _v3, 0, 100, (v) => setState(() => _v3 = v)),
-                      _buildSlider("V4", _v4, 0, 100, (v) => setState(() => _v4 = v)),
+                      _buildSlider("V1", _v1, 0, 100, (v) => setState(() => _v1 = v), divisions: 20),
+                      _buildSlider("V2", _v2, 0, 100, (v) => setState(() => _v2 = v), divisions: 20),
+                      _buildSlider("V3", _v3, 0, 100, (v) => setState(() => _v3 = v), divisions: 20),
+                      _buildSlider("V4", _v4, 0, 100, (v) => setState(() => _v4 = v), divisions: 20),
                       const Divider(height: 40),
-                      Text('tuning_driving_behavior'.tr, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                      _buildSlider('tuning_ramping'.tr, _rampStep, 0.1, 3.0, (v) => setState(() => _rampStep = v)),
-                      // HIER IST DAS LIMIT WIEDER DA:
-                      _buildSlider('tuning_reverse'.tr, _reverseLimit, 0.1, 1.0, (v) => setState(() => _reverseLimit = v)),
+                      _buildSlider('tuning_ramping'.tr, _rampStep, 0.1, 3.0, (v) => setState(() => _rampStep = v), divisions: 29),
+                      _buildSlider('tuning_reverse'.tr, _reverseLimit, 0.1, 1.0, (v) => setState(() => _reverseLimit = v), divisions: 9),
                       SwitchListTile(title: Text('tuning_auto_light'.tr), value: _autoLight, onChanged: (v) => setState(() => _autoLight = v)),
                       const SizedBox(height: 100),
                     ],
