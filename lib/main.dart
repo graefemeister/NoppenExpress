@@ -35,6 +35,7 @@ void main() async {
   L10n.lang = await SettingsManager.loadLanguage();
 
   await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);
@@ -134,20 +135,30 @@ class _NoppenExpressAppState extends State<NoppenExpressApp> {
 class DashboardScreen extends StatefulWidget {
   final VoidCallback onSettingsChanged;
   const DashboardScreen({super.key, required this.onSettingsChanged});
+
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen> with TickerProviderStateMixin {
   bool _permissionsGranted = false;
-  bool _isLoading = true; 
-  List<TrainController> _lokListe = []; 
-  TrainController? _selectedTrain; 
+  bool _isLoading = true;
+  List<TrainController> _lokListe = [];
+  TrainController? _selectedTrain;
+  
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _initApp();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _initApp() async {
@@ -155,39 +166,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await _loadTrains();
   }
 
-  // --- DIE HÖRSTATION FÜR STATUS-ÄNDERUNGEN (INKL. SNACKBAR) ---
-  void _attachTrainListener(TrainController train) {
-    train.onStatusChanged = () {
-      if (mounted) {
-        setState(() {}); // Sortiert die Liste neu
+  // --- DIE "VERMISSTEN" METHODEN ---
 
-        if (!train.isRunning) {
-          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.link_off, color: Colors.white),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      // Wir holen den übersetzten Teil und hängen den Namen an
-                      "${'connection_lost'.tr} '${train.name}'", 
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: Colors.red.shade800,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              margin: const EdgeInsets.all(12),
-              duration: const Duration(seconds: 5),
-            ),
-          );
-        }
-      }
-    };
+  Future<void> _requestPermissions() async {
+    if (Platform.isAndroid) {
+      await [Permission.bluetoothScan, Permission.bluetoothConnect, Permission.location].request();
+    }
+    setState(() { _permissionsGranted = true; });
   }
 
   Future<void> _loadTrains() async {
@@ -202,11 +187,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  Future<void> _requestPermissions() async {
-    if (Platform.isAndroid) {
-      await [Permission.bluetoothScan, Permission.bluetoothConnect, Permission.location].request();
-    }
-    setState(() { _permissionsGranted = true; });
+  void _attachTrainListener(TrainController train) {
+    train.onStatusChanged = () {
+      if (mounted) {
+        setState(() {});
+        if (!train.isRunning) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("${'connection_lost'.tr} '${train.name}'"),
+              backgroundColor: Colors.red.shade800,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    };
   }
 
   void _globalEmergencyStop() {
@@ -217,64 +212,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
         stoppedCount++;
       }
     }
-    setState(() {}); 
+    setState(() {});
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(children: [const Icon(Icons.warning, color: Colors.white), const SizedBox(width: 12), 
-        Text("${'global_stop'.tr}: $stoppedCount")]),
-        backgroundColor: Colors.red.shade900,
-        behavior: SnackBarBehavior.floating,
-      ),
+      SnackBar(content: Text("${'global_stop'.tr}: $stoppedCount"), backgroundColor: Colors.red.shade900),
     );
   }
 
-  void _showAbout() {
-    showAboutDialog(
-      context: context,
-      applicationName: "NoppenExpress",
-      applicationVersion: "Version 1.9.0",
-      applicationIcon: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.asset(
-          'assets/applogo.png',
-          width: 60, height: 60,
-          errorBuilder: (context, error, stackTrace) => const Icon(Icons.train, size: 60), 
-        ),
-      ),
-      applicationLegalese: "© 2026 graefemeister@gmail.com",
-      children: [
-        const SizedBox(height: 16),
-        const Text("Ein freies Hobbyprojekt für Klemmbausteinfreunde.\nLizenziert unter GNU GPL v3."),
-        const SizedBox(height: 24),
-        ElevatedButton.icon(
-          onPressed: () async {
-            // Direkt zum Repo, falls der Name so stimmt:
-            final Uri url = Uri.parse('https://github.com/graefemeister/NoppenExpress'); 
-            if (!await launchUrl(url, mode: LaunchMode.externalApplication)) debugPrint('Fehler');
-          },
-          icon: const Icon(Icons.code),
-          label: const Text("Quellcode auf GitHub ansehen"),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF24292E), 
-            foregroundColor: Colors.white,
-            elevation: 0, // Wirkt oft moderner/schlichter
-          ),
-        ),
-      ],
-    );
-}
-
   void _openWorkshop({TrainController? trainToEdit}) async {
     final TrainController? result = await Navigator.push(
-      context, 
-      MaterialPageRoute(builder: (context) => WorkshopScreen(existingTrains: _lokListe, trainToEdit: trainToEdit))
+      context,
+      MaterialPageRoute(builder: (context) => WorkshopScreen(existingTrains: _lokListe, trainToEdit: trainToEdit)),
     );
 
     if (result != null) {
       _attachTrainListener(result);
       setState(() {
         if (trainToEdit != null) {
-          trainToEdit.disconnect(); 
+          trainToEdit.disconnect();
           int index = _lokListe.indexOf(trainToEdit);
           _lokListe[index] = result;
           if (_selectedTrain == trainToEdit) _selectedTrain = result;
@@ -289,17 +243,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _exportData() async {
     try {
       String jsonData = await TrainManager.exportAsJson();
-      if (jsonData == "[]" || jsonData.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Keine Loks zum Exportieren vorhanden.")));
-        return;
-      }
       final directory = await getTemporaryDirectory();
-      final filePath = '${directory.path}/NoppenExpress_Backup.json';
-      final file = File(filePath);
+      final file = File('${directory.path}/NoppenExpress_Backup.json');
       await file.writeAsString(jsonData);
-      await Share.shareXFiles([XFile(file.path)], subject: 'NoppenExpress Lok-Backup', text: 'Hier ist dein NoppenExpress Backup!');
+      await Share.shareXFiles([XFile(file.path)], subject: 'NoppenExpress Backup');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Export fehlgeschlagen: $e")));
+      debugPrint("Export Fehler: $e");
     }
   }
 
@@ -310,10 +259,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       String content = await file.readAsString();
       List<TrainController> imported = TrainManager.loadTrainsFromContent(content);
       for (var t in imported) { _attachTrainListener(t); }
-      if (imported.isNotEmpty) {
-        setState(() => _lokListe.addAll(imported));
-        await TrainManager.saveTrains(_lokListe);
-      }
+      setState(() { _lokListe.addAll(imported); });
+      await TrainManager.saveTrains(_lokListe);
     }
   }
 
@@ -330,6 +277,76 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  void _showTrainOptions(TrainController train) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(leading: const Icon(Icons.edit), title: Text('edit'.tr), onTap: () { Navigator.pop(ctx); _openWorkshop(trainToEdit: train); }),
+            ListTile(leading: const Icon(Icons.delete, color: Colors.red), title: Text('delete'.tr, style: const TextStyle(color: Colors.red)), onTap: () { Navigator.pop(ctx); _deleteTrain(train); }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAbout() {
+  showAboutDialog(
+    context: context,
+    applicationName: "NoppenExpress",
+    applicationVersion: "Version 1.9.5",
+    applicationIcon: ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.asset(
+        'assets/applogo.png',
+        width: 60, height: 60,
+        errorBuilder: (context, error, stackTrace) => 
+          const Icon(Icons.train, size: 60, color: Colors.blueGrey), 
+      ),
+    ),
+    applicationLegalese: "© 2026 graefemeister",
+    children: [
+      const SizedBox(height: 16),
+      Text('about_description'.tr, style: const TextStyle(fontWeight: FontWeight.bold)),
+      const SizedBox(height: 16),
+      const Divider(),
+      const SizedBox(height: 10),
+      Text(
+        'about_credits_title'.tr,
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(top: 6.0),
+        child: Text(
+          'about_credits_text'.tr,
+          style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+        ),
+      ),
+      const SizedBox(height: 24),
+      ElevatedButton.icon(
+        onPressed: () async {
+          final Uri url = Uri.parse('https://github.com/graefemeister/NoppenExpress'); 
+          if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+            debugPrint('Fehler beim Öffnen von GitHub');
+          }
+        },
+        icon: const Icon(Icons.code),
+        label: Text('about_github_btn'.tr),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF444C56), 
+          foregroundColor: Colors.white,
+          minimumSize: const Size(double.infinity, 45),
+        ),
+      ),
+    ],
+  );
+}
+
+  // --- DIE BUILD METHODE ---
+
   @override
   Widget build(BuildContext context) {
     final sortedList = List<TrainController>.from(_lokListe)..sort((a, b) {
@@ -337,129 +354,127 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return a.name.toLowerCase().compareTo(b.name.toLowerCase());
     });
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            const Text("NoppenExpress", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark 
-                    ? Colors.cyanAccent.withOpacity(0.15) 
-                    : Colors.blue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.cyanAccent.withOpacity(0.5) : Colors.blue.withOpacity(0.5)),
-              ),
-              child: Text('BLE', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.cyanAccent : Colors.blue.shade800, fontSize: 10, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
-        actions: [
-          Padding(padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0), child: ElevatedButton.icon(onPressed: _globalEmergencyStop, icon: const Icon(Icons.bolt, color: Colors.white), label: Text('global_stop'.tr), style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white))),
-          IconButton(icon: const Icon(Icons.add_box_outlined), onPressed: () => _openWorkshop(), tooltip: 'new_train'.tr),
-          PopupMenuButton<String>(
-            onSelected: (val) async {
-              if (val == 'export') _exportData();
-              if (val == 'import') _importData();
-              if (val == 'settings') { await Navigator.push(context, MaterialPageRoute(builder: (c) => const SettingsScreen())); widget.onSettingsChanged(); }
-              if (val == 'readme') Navigator.push(context, MaterialPageRoute(builder: (c) => const ReadmeScreen()));
-              if (val == 'about') _showAbout();
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(value: 'export', child: Row(children: [const Icon(Icons.upload, size: 20), const SizedBox(width: 8), Text('export'.tr)])),
-              PopupMenuItem(value: 'import', child: Row(children: [const Icon(Icons.download, size: 20), const SizedBox(width: 8), Text('import'.tr)])),
-              const PopupMenuDivider(),
-              PopupMenuItem(value: 'settings', child: Row(children: [const Icon(Icons.settings, size: 20), const SizedBox(width: 8), Text('settings'.tr)])),
-              PopupMenuItem(value: 'readme', child: Row(children: [const Icon(Icons.menu_book, size: 20), const SizedBox(width: 8), Text('readme'.tr)])),
-              PopupMenuItem(value: 'about', child: Row(children: [const Icon(Icons.info_outline, size: 20), const SizedBox(width: 8), Text('about'.tr)])),
-            ],
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: !_permissionsGranted 
-    ? const Center(child: Text("Berechtigungen fehlen"))
-    : _isLoading 
-        ? const Center(child: CircularProgressIndicator()) 
-        : Row(
-            children: [
-              // LINKER TEIL: Die Lokliste (jetzt flexibel statt festen 300px)
-              Expanded(
-                flex: 3, // Nimmt ca. 30% der Breite ein
-                child: Container(
-                  color: Theme.of(context).cardColor,
-                  child: sortedList.isEmpty 
-                    ? Center(child: Padding(padding: const EdgeInsets.all(20), child: Text('no_trains'.tr, textAlign: TextAlign.center)))
-                    : ListView.separated(
-                        itemCount: sortedList.length,
-                        separatorBuilder: (context, index) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final train = sortedList[index];
-                          return ListTile(
-                            dense: true, // Macht das Element flacher
-                            visualDensity: VisualDensity.compact, // Rückt alles enger zusammen
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                            leading: ClipRRect(
-                              borderRadius: BorderRadius.circular(4), 
-                              child: SizedBox(
-                                width: 50, // Kleineres Vorschaubild (vorher 70)
-                                height: 32, // (vorher 44)
-                                child: train.imagePath.isEmpty 
-                                    ? Container(color: Colors.grey.shade200, child: const Icon(Icons.train, size: 20)) 
-                                    : (train.imagePath.startsWith('assets/') 
-                                        ? Image.asset(train.imagePath, fit: BoxFit.cover) 
-                                        : Image.file(File(train.imagePath), fit: BoxFit.cover)),
-                              ),
-                            ),
-                            title: Text(
-                              train.name, 
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                              overflow: TextOverflow.ellipsis, // Verhindert Umbrüche bei langen Namen
-                              maxLines: 1,
-                            ),
-                            subtitle: Row(
-                              children: [
-                                Container(width: 6, height: 6, decoration: BoxDecoration(color: train.isRunning ? Colors.green : Colors.red, shape: BoxShape.circle)), 
-                                const SizedBox(width: 4), 
-                                Text(train.isRunning ? 'online'.tr : 'offline'.tr, style: const TextStyle(fontSize: 9))
-                              ],
-                            ),
-                            selected: _selectedTrain == train,
-                            onTap: () => setState(() => _selectedTrain = train),
-                            onLongPress: () {
-                               showModalBottomSheet(
-                                context: context,
-                                builder: (ctx) => Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ListTile(leading: const Icon(Icons.edit), title: Text('edit'.tr), onTap: () { Navigator.pop(ctx); _openWorkshop(trainToEdit: train); }),
-                                    ListTile(leading: const Icon(Icons.delete, color: Colors.red), title: Text('delete'.tr, style: const TextStyle(color: Colors.red)), onTap: () { Navigator.pop(ctx); _deleteTrain(train); }),
-                                  ],
-                                ),
-                              );
-                            },
-                          );
-                        },
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        final isPortrait = orientation == Orientation.portrait;
+
+        Widget listPart = Container(
+          color: Theme.of(context).cardColor,
+          child: sortedList.isEmpty
+              ? Center(child: Text('no_trains'.tr))
+              : ListView.separated(
+                  itemCount: sortedList.length,
+                  separatorBuilder: (ctx, i) => const Divider(height: 1),
+                  itemBuilder: (ctx, i) {
+                    final train = sortedList[i];
+                    return ListTile(
+                      // --- DAS VORSCHAU-BILD ---
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: SizedBox(
+                          width: 50,
+                          height: 32,
+                          child: train.imagePath.isEmpty
+                              ? Container(
+                                  color: Theme.of(context).dividerColor.withOpacity(0.1),
+                                  child: const Icon(Icons.train, size: 20),
+                                )
+                              : (train.imagePath.startsWith('assets/')
+                                  ? Image.asset(train.imagePath, fit: BoxFit.cover)
+                                  : Image.file(File(train.imagePath), fit: BoxFit.cover)),
+                        ),
                       ),
+                      // --- TEXTE ---
+                      title: Text(
+                        train.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Row(
+                        children: [
+                          Container(
+                            width: 8, height: 8,
+                            decoration: BoxDecoration(
+                              color: train.isRunning ? Colors.green : Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(train.isRunning ? 'online'.tr : 'offline'.tr, style: const TextStyle(fontSize: 11)),
+                        ],
+                      ),
+                      selected: _selectedTrain == train,
+                      onTap: () {
+                        setState(() => _selectedTrain = train);
+                        if (isPortrait) _tabController.animateTo(1);
+                      },
+                      onLongPress: () => _showTrainOptions(train),
+                    );
+                  },
+                ),
+        );
+
+        Widget controlPart = _selectedTrain == null
+            ? Center(child: Text('select_train'.tr))
+            : TrainControlPanel(
+                key: ValueKey(_selectedTrain!.config.id),
+                train: _selectedTrain!,
+                onStateChanged: () => setState(() {}),
+              );
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text("NoppenExpress"),
+            bottom: isPortrait
+                ? TabBar(
+                    controller: _tabController,
+                    tabs: [
+                      Tab(icon: const Icon(Icons.list), text: 'list'.tr),
+                      Tab(icon: const Icon(Icons.settings_remote), text: 'controls'.tr),
+                    ],
+                  )
+                : null,
+            actions: [
+                  TextButton.icon(onPressed: _globalEmergencyStop, 
+                  icon: const Icon(Icons.bolt, color: Colors.red, size: 28), 
+                  label: Text('stop_all'.tr, 
+                  style: const TextStyle(
+                    color: Colors.red, 
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12
+                  )
                 ),
               ),
-              const VerticalDivider(width: 1),
-              
-              // RECHTER TEIL: Das Steuerpult (nimmt den Rest ein)
-              Expanded(
-                flex: 7, // Nimmt ca. 70% der Breite ein
-                child: _selectedTrain == null
-                    ? Center(child: Text('select_train'.tr))
-                    : TrainControlPanel(
-                        key: ValueKey(_selectedTrain!.config.id), 
-                        train: _selectedTrain!, 
-                        onStateChanged: () => setState(() {})
-                      ),
+              IconButton(icon: const Icon(Icons.add_box_outlined), onPressed: () => _openWorkshop()),
+              PopupMenuButton<String>(
+                onSelected: (val) {
+                  if (val == 'export') _exportData();
+                  if (val == 'import') _importData();
+                  if (val == 'about') _showAbout();
+                  if (val == 'readme') Navigator.push(context, MaterialPageRoute(builder: (c) => const ReadmeScreen()));
+                  if (val == 'settings') {
+                    Navigator.push(context, MaterialPageRoute(builder: (c) => const SettingsScreen())).then((_) => widget.onSettingsChanged());
+                  }
+                },
+                itemBuilder: (ctx) => [
+                  PopupMenuItem(value: 'export', child: Text('export'.tr)),
+                  PopupMenuItem(value: 'import', child: Text('import'.tr)),
+                  const PopupMenuDivider(),
+                  PopupMenuItem(value: 'readme', child: Row(children: [const Icon(Icons.menu_book, size: 20), const SizedBox(width: 8), Text('readme'.tr)])),
+                  PopupMenuItem(value: 'settings', child: Row(children: [const Icon(Icons.settings, size: 20), const SizedBox(width: 8), Text('settings'.tr)])),
+                  PopupMenuItem(value: 'about', child: Row(children: [const Icon(Icons.info_outline, size: 20), const SizedBox(width: 8), Text('about'.tr)])),                ],
               ),
             ],
           ),
+          body: isPortrait
+              ? TabBarView(controller: _tabController, children: [listPart, controlPart])
+              : Row(children: [
+                  Expanded(flex: 3, child: listPart),
+                  const VerticalDivider(width: 1),
+                  Expanded(flex: 7, child: controlPart),
+                ]),
+        );
+      },
     );
   }
 }
@@ -516,10 +531,18 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    bool isConnected = widget.train.isRunning;
-    final config = widget.train.config;
-    final isLego = config.protocol == 'lego_hub';
+    Widget build(BuildContext context) {
+      bool isConnected = widget.train.isRunning;
+      
+      // Diese Zeile löst alle "config isn't defined" Fehler:
+      final config = widget.train.config; 
+      
+      // Falls du die Blockade-Logik eingebaut hast, sollte sie hier folgen:
+      if (widget.train.targetSpeed == 0 && _currentGearText != "0") {
+        _currentGearText = "0";
+      }
+
+      final isLego = config.protocol == 'lego_hub';
 
     return Stack(
       children: [
@@ -569,8 +592,10 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
                         Text(
                           () {
                             switch (config.protocol) {
-                              case 'mould_king': return 'Mould King (Modern)';
+                              case 'mould_king': return 'Mould King (BLE)';
+                              case 'mould_king_classic': return 'Mould King (Broadcast)';
                               case 'lego_hub': return 'LEGO Powered Up';
+                              case 'lego_duplo': return 'LEGO DUPLO';
                               case 'circuit_cube': return 'Circuit Cube';
                               default: return 'Unbekanntes Protokoll';
                             }
@@ -605,25 +630,186 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
               // HALT & STOP
               Row(
                 children: [
+                  // 1. HALT (Der normale Stopp - bleibt immer Orange)
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: isConnected ? () => _setGear(0, true, "0") : null, 
                       icon: const Icon(Icons.pause_circle_filled, size: 28), 
                       label: Text('halt'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), 
-                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 20), backgroundColor: Colors.orange.shade400, foregroundColor: Colors.white)
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 20), 
+                        backgroundColor: Colors.orange.shade400, 
+                        foregroundColor: Colors.white
+                      )
                     )
                   ), 
                   const SizedBox(width: 16), 
+                  // 2. STOP / BLOCKADE (Der Notaus & Warn-Button)
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: isConnected ? () { widget.train.emergencyStop(); setState(() { _currentGearText = "0"; }); } : null, 
-                      icon: const Icon(Icons.warning_amber_rounded, size: 28), 
-                      label: Text('stop'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), 
-                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 20), backgroundColor: Colors.red.shade800, foregroundColor: Colors.white)
+                      onPressed: isConnected ? () { 
+                        widget.train.emergencyStop(); 
+                        setState(() { _currentGearText = "0"; }); 
+                      } : null, 
+                      // ICON: Wechselt bei Blockade zu einem auffälligen Fehler-Symbol
+                      icon: Icon(
+                        (widget.train is LegoDuploController && (widget.train as LegoDuploController).isBlocked)
+                            ? Icons.report_gmailerrorred_rounded // Aggressiveres Fehler-Icon
+                            : Icons.warning_amber_rounded, 
+                        size: 28
+                      ), 
+                      label: Text(
+                        (widget.train is LegoDuploController && (widget.train as LegoDuploController).isBlocked)
+                            ? 'blockade.tr' // Text ändert sich bei Fehler
+                            : 'stop'.tr, 
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                      ), 
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 20), 
+                        // FARBE: Wird bei Blockade zu einem hellen, blinkenden Rot
+                        backgroundColor: (widget.train is LegoDuploController && (widget.train as LegoDuploController).isBlocked)
+                            ? Colors.redAccent.shade400 
+                            : Colors.red.shade800, 
+                        foregroundColor: Colors.white,
+                        // Optional: Ein dickerer Rahmen bei Blockade
+                        side: (widget.train is LegoDuploController && (widget.train as LegoDuploController).isBlocked)
+                            ? const BorderSide(color: Colors.white, width: 2)
+                            : null,
+                      )
                     )
                   )
                 ]
               ),
+
+              const SizedBox(height: 32), 
+              
+              // --- ZUBEHÖR (DYNAMIC LIGHTS & SOUNDS) ---
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'accessories'.tr, 
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  Wrap(
+                    spacing: 8.0,
+                    runSpacing: 8.0,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      // --- SPEZIAL-LOGIK FÜR LEGO DUPLO ---
+                      if (config.protocol == 'lego_duplo') ...[
+                        // Hauptlicht an/aus (Weiß)
+                        FilterChip(
+                          label: Text('light'.tr), 
+                          selected: widget.train.lightA > 0, 
+                          onSelected: isConnected ? (val) { 
+                            widget.train.setLight('A', val); 
+                            setState(() {}); 
+                          } : null,
+                        ),
+                        // Farbwechsel-Button (RGB LED)
+                        ActionChip(
+                          avatar: Icon(Icons.palette, size: 18, color: isConnected ? Colors.blue : null),
+                          label: Text('color'.tr), // Hier evtl. 'color_cycle'.tr nutzen
+                          onPressed: isConnected ? () {
+                            (widget.train as LegoDuploController).cycleColor();
+                            setState(() {});
+                          } : null,
+                        ),
+                        const Divider(height: 24, thickness: 0.5),
+                        // Sound-Buttons
+
+                        // 1. HUPE (ID 7)
+                        ActionChip(
+                          avatar: const Icon(Icons.volume_up, size: 18),
+                          label: Text('horn'.tr),
+                          onPressed: isConnected 
+                              ? () => (widget.train as LegoDuploController).playSound(10) 
+                              : null,
+                        ),
+
+                        // 2. TANKEN / WASSER (ID 5)
+                        ActionChip(
+                          avatar: const Icon(Icons.ev_station, size: 18),
+                          label: Text('fuel'.tr),
+                          onPressed: isConnected 
+                              ? () => (widget.train as LegoDuploController).playSound(7) 
+                              : null,
+                        ),
+
+                        // 3. DAMPF-ZISCHEN (ID 9)
+                        ActionChip(
+                          avatar: const Icon(Icons.music_note, size: 18),
+                          label: Text('fanfare'.tr),
+                          onPressed: isConnected 
+                              ? () => (widget.train as LegoDuploController).playSound(5) 
+                              : null,
+                        ),
+
+                        // 4. ABFAHRT / GLOCKE (ID 10)
+                        ActionChip(
+                          avatar: const Icon(Icons.notifications_active, size: 18),
+                          label: Text('departure'.tr),
+                          onPressed: isConnected 
+                              ? () => (widget.train as LegoDuploController).playSound(9) 
+                              : null,
+                        ),
+
+                        // 5. BREMSE / QUIETSCHEN (ID 3)
+                        ActionChip(
+                          avatar: const Icon(Icons.stop_circle_outlined, size: 18),
+                          label: Text('brake'.tr),
+                          onPressed: isConnected 
+                              ? () => (widget.train as LegoDuploController).playSound(3) 
+                              : null,
+                        ),
+                      ]
+                      
+                      // --- STANDARD LOGIK FÜR ANDERE PROTOKOLLE ---
+                      else ...[
+                        // PORT B LOGIK
+                        if (!isLego || (isLego && config.portSettings['B'] == 'light'))
+                          FilterChip(
+                            label: Text('light_b'.tr), 
+                            selected: widget.train.lightB > 0, 
+                            onSelected: isConnected ? (val) { 
+                              widget.train.setLight('B', val); 
+                              setState(() {}); 
+                            } : null,
+                          ),
+
+                        // PORT C LOGIK
+                        if (!isLego)
+                          FilterChip(
+                            label: Text('light_c'.tr), 
+                            selected: widget.train.lightC > 0, 
+                            onSelected: isConnected ? (val) { 
+                              widget.train.setLight('C', val); 
+                              setState(() {}); 
+                            } : null,
+                          ),
+                      ],
+
+                      // Invertieren-Chip (gilt für alle, außer evtl. Duplo, aber schadet dort auch nicht)
+                      ActionChip(
+                        avatar: const Icon(Icons.swap_horiz, size: 18), 
+                        label: Text('invert'.tr), 
+                        backgroundColor: widget.train.inverted ? Colors.orange.withOpacity(0.4) : null, 
+                        onPressed: () { 
+                          widget.train.toggleInverted(); 
+                          setState(() {}); 
+                        }
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 32), 
+              const Divider(), 
+              const SizedBox(height: 16),
               
               // NOTIZEN
               if (config.notes.isNotEmpty) ...[
@@ -643,49 +829,9 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
                 )
               ],
               
-              const SizedBox(height: 32), 
-              const Divider(), 
-              const SizedBox(height: 16),
-              
-              // --- ZUBEHÖR (DYNAMIC LIGHTS) ---
-              Row(
-                children: [
-                  Text('accessories'.tr, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
-                  const SizedBox(width: 16),
-                  
-                  // PORT B LOGIK
-                  if (!isLego || (isLego && config.portSettings['B'] == 'light'))
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: FilterChip(
-                        label: Text('light_b'.tr), 
-                        selected: widget.train.lightB > 0, 
-                        onSelected: isConnected ? (val) { widget.train.setLight('B', val); setState(() {}); } : null,
-                      ),
-                    ),
 
-                  // PORT C LOGIK (Nur wenn kein LEGO)
-                  if (!isLego)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: FilterChip(
-                        label: Text('light_c'.tr), 
-                        selected: widget.train.lightC > 0, 
-                        onSelected: isConnected ? (val) { widget.train.setLight('C', val); setState(() {}); } : null,
-                      ),
-                    ),
-                    
-                  const Spacer(),
-                  
-                  // INVERTIEREN (Immer da)
-                  ActionChip(
-                    avatar: const Icon(Icons.swap_horiz, size: 18), 
-                    label: Text('invert'.tr), 
-                    backgroundColor: widget.train.inverted ? Colors.orange.withOpacity(0.4) : null, 
-                    onPressed: () { widget.train.toggleInverted(); setState(() {}); }
-                  )
-                ]
-              ),
+              
+              
               // Puffer für Scroll-Freiheit (besonders wichtig wegen des FAB in der Main)
               const SizedBox(height: 80),
             ],

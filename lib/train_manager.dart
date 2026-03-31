@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'train_core.dart'; 
 
+
 class TrainManager {
   static const String _storageKey = 'lokleiter_trains';
 
@@ -26,8 +27,12 @@ class TrainManager {
         TrainConfig config = TrainConfig.fromMap(item);
         if (config.protocol == 'lego_hub') {
           list.add(LegoHubController(config));
+        } else if (config.protocol == 'lego_duplo') {
+          list.add(LegoDuploController(config));
         } else if (config.protocol == 'circuit_cube') {
           list.add(CircuitCubeController(config));
+        } else if (config.protocol == 'mould_king_classic') { 
+          list.add(MouldKingClassicController(config)); 
         } else {
           // Standardfall für alle anderen Mould King Hubs
           list.add(MouldKingController(config));

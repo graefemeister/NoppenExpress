@@ -7,6 +7,7 @@ import 'dart:async';
 import 'train_core.dart';
 import 'dart:io'; 
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'localization.dart';
 
 class WorkshopScreen extends StatefulWidget {
@@ -24,7 +25,6 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
   final _macController = TextEditingController();
   final _notesController = TextEditingController();
   
-  // KORREKTUR: Initial auf null setzen für den "Wähl mich"-Zustand
   String? _selectedProtocol;
   String _imagePath = "";
   
@@ -46,7 +46,7 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
       _nameController.text = config.name;
       _macController.text = config.mac;
       _notesController.text = config.notes;
-      _selectedProtocol = config.protocol; // Beim Editieren laden wir das Protokoll
+      _selectedProtocol = config.protocol;
       _imagePath = config.imagePath;
       _v1 = config.gears[1] ?? 25.0;
       _v2 = config.gears[2] ?? 50.0;
@@ -57,7 +57,7 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
       _autoLight = config.autoLight;
       _portSettings = Map<String, String>.from(config.portSettings);
     }
-  }
+  } 
 
   @override
   void dispose() {
@@ -71,7 +71,9 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
   String _getTemplateForProtocol(String protocol) {
     switch (protocol) {
       case 'lego_hub': return 'template_lego_hub'.tr;
+      case 'lego_duplo': return 'template_lego_duplo'.tr;
       case 'mould_king': return 'template_mould_king'.tr;
+      case 'mould_king_classic': return 'template_mould_king_classic'.tr;
       case 'circuit_cube': return 'template_circuit_cube'.tr;
       default: return "";
     }
@@ -97,10 +99,25 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
     }
   }
 
+  void _stopScan() {
+    // Stoppt den physischen Scan-Vorgang der Bibliothek
+    FlutterBluePlus.stopScan();
+    
+    // Aktualisiert das UI, damit der Button wieder klickbar wird
+    setState(() {
+      _isScanning = false;
+    });
+  }
+
   void _save() {
-    // KORREKTUR: Validierung inklusive Protokoll-Check
+    if (_selectedProtocol == 'mould_king_classic') {
+      _macController.text = "00:00:00:00:00:00"; 
+    }
+
     if (_nameController.text.isEmpty || _macController.text.isEmpty || _selectedProtocol == null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('msg_incomplete'.tr)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('msg_incomplete'.tr))
+      );
       return;
     }
 
@@ -109,7 +126,7 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
       name: _nameController.text,
       mac: _macController.text.trim().toUpperCase(),
       imagePath: _imagePath,
-      protocol: _selectedProtocol!, // Sicher da oben geprüft
+      protocol: _selectedProtocol!,
       notes: _notesController.text,
       gears: {0: 0, 1: _v1, 2: _v2, 3: _v3, 4: _v4},
       rampStep: _rampStep,
@@ -121,7 +138,9 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
     TrainController newTrain;
     switch (_selectedProtocol) {
       case 'lego_hub': newTrain = LegoHubController(config); break;
+      case 'lego_duplo': newTrain = LegoDuploController(config); break; // <--- NEU
       case 'circuit_cube': newTrain = CircuitCubeController(config); break;
+      case 'mould_king_classic': newTrain = MouldKingClassicController(config); break;
       default: newTrain = MouldKingController(config);
     }
     Navigator.pop(context, newTrain);
@@ -143,10 +162,34 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
 
   Future<void> _getImage(ImageSource source) async {
     final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      imageQuality: 85,
+    );
+
+    if (image != null) {
+      String safePath = await _copyImageToPermanentStorage(image.path);
+      setState(() {
+        _imagePath = safePath;
+      });
+    }
+  }
+
+  Future<String> _copyImageToPermanentStorage(String tempPath) async {
+    if (tempPath.isEmpty || tempPath.startsWith('assets/')) return tempPath;
     try {
-      final XFile? image = await picker.pickImage(source: source, maxWidth: 800, imageQuality: 85);
-      if (image != null) setState(() => _imagePath = image.path);
-    } catch (e) { debugPrint("Bildfehler: $e"); }
+      final File tempFile = File(tempPath);
+      if (!await tempFile.exists()) return tempPath;
+      final directory = await getApplicationDocumentsDirectory();
+      final String fileName = "train_img_${DateTime.now().millisecondsSinceEpoch}.png";
+      final String permanentPath = "${directory.path}/$fileName";
+      await tempFile.copy(permanentPath);
+      return permanentPath;
+    } catch (e) {
+      debugPrint("Fehler beim Sichern: $e");
+      return tempPath;
+    }
   }
 
   Widget _buildSlider(String label, double value, double min, double max, Function(double) onChanged, {int? divisions}) {
@@ -220,115 +263,203 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
                             radius: isLandscape ? 40 : 60,
                             backgroundColor: Colors.blueGrey.shade100,
                             backgroundImage: _imagePath.isNotEmpty ? FileImage(File(_imagePath)) : null,
-                            // KORREKTUR: Farbe auf dunkles blueGrey für maximalen Kontrast auf Hellgrau
-                            child: _imagePath.isEmpty ? Icon(Icons.add_a_photo, size: 30, color: Colors.blueGrey.shade800) : null,
+                            child: _imagePath.isEmpty 
+                                ? Icon(Icons.add_a_photo, size: 30, color: Colors.blueGrey.shade800) 
+                                : null,
                           ),
                         ),
                       ),
                       const SizedBox(height: 24),
-
                       DropdownButtonFormField<String>(
                         value: _selectedProtocol,
-                        // KORREKTUR: Hint wird angezeigt, wenn value null ist
                         hint: Text('label_choose_protocol'.tr),
                         decoration: InputDecoration(labelText: 'label_protocol'.tr, border: const OutlineInputBorder(), isDense: true),
                         items: const [
                           DropdownMenuItem(value: 'lego_hub', child: Text('LEGO Powered Up')),
+                          DropdownMenuItem(value: 'lego_duplo', child: Text('LEGO DUPLO')),
                           DropdownMenuItem(value: 'mould_king', child: Text('Mould King')),
+                          DropdownMenuItem(value: 'mould_king_classic', child: Text('Mould King 4.0 (Broadcast)')),
                           DropdownMenuItem(value: 'circuit_cube', child: Text('Circuit Cube')),
                         ],
                         onChanged: (newValue) {
                           setState(() {
                             _selectedProtocol = newValue!;
-                            if (_selectedProtocol != 'lego_hub') {
+                            if (_selectedProtocol == 'lego_duplo') {
+                               _portSettings = {'A': 'motor', 'B': 'light', 'C': 'none'};
+                            } else if (_selectedProtocol == 'mould_king_classic') {
+                              _portSettings = {'A': 'motor', 'B': 'light', 'C': 'light'};
+                            } else if (_selectedProtocol != 'lego_hub') {
                               _portSettings['A'] = 'motor'; _portSettings['B'] = 'light'; _portSettings['C'] = 'light';
                             } else {
                               _portSettings['A'] = 'motor'; _portSettings['B'] = 'motor'; _portSettings['C'] = 'none';
                             }
-                            // Jetzt wird die Info IMMER beim Wechsel geladen
                             _notesController.text = _getTemplateForProtocol(_selectedProtocol!);
                           });
                         },
                       ),
                       const SizedBox(height: 16),
-
                       TextField(
                         controller: _notesController, 
-                        minLines: 4, 
-                        maxLines: 8, 
-                        decoration: InputDecoration(
-                          labelText: 'label_notes'.tr, 
-                          border: const OutlineInputBorder(), 
-                          isDense: true, 
-                          alignLabelWithHint: true,
-                          hintText: "..."
-                        )
+                        minLines: 4, maxLines: 8, 
+                        decoration: InputDecoration(labelText: 'label_notes'.tr, border: const OutlineInputBorder(), isDense: true, alignLabelWithHint: true)
                       ),
-                      const SizedBox(height: 24),
-                      const Divider(),
                       const SizedBox(height: 16),
-
                       TextField(
                         controller: _nameController, 
                         decoration: InputDecoration(labelText: 'label_name'.tr, border: const OutlineInputBorder(), isDense: true)
                       ),
                       const SizedBox(height: 16),
-                      TextField(
-                        controller: _macController, 
-                        decoration: InputDecoration(labelText: 'label_mac'.tr, border: const OutlineInputBorder(), isDense: true, hintText: "AC:3E:B1...")
-                      ),
+                      if (_selectedProtocol != 'mould_king_classic') ...[
+                        TextField(
+                          controller: _macController, 
+                          decoration: InputDecoration(labelText: 'label_mac'.tr, border: const OutlineInputBorder(), isDense: true, hintText: "AC:3E:B1...")
+                        ),
+                      ] else ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(color: Colors.blueGrey.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.blueGrey.shade200)),
+                          child: Row(children: [const Icon(Icons.info_outline, color: Colors.blueGrey), const SizedBox(width: 12), Expanded(child: Text('info_no_mac_needed'.tr, style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.blueGrey)))]),
+                        ),
+                      ],
                       const SizedBox(height: 250), 
                     ],
                   ),
-
                   // --- TAB 2: SCAN ---
                   ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      ElevatedButton.icon(
-                        onPressed: _isScanning ? null : _startScan,
-                        icon: Icon(_isScanning ? Icons.sync : Icons.search),
-                        label: Text(_isScanning ? 'scan_running'.tr : 'btn_start_scan'.tr),
-                        style: ElevatedButton.styleFrom(backgroundColor: _isScanning ? null : Colors.blue.shade700, foregroundColor: Colors.white),
-                      ),
-                      if (_isScanning) const LinearProgressIndicator(color: Colors.cyanAccent),
-                      const SizedBox(height: 15),
-                      ..._bleResults.map((r) => Card(
-                        child: ListTile(
-                          leading: const Icon(Icons.bluetooth),
-                          title: Text(r.device.platformName.isEmpty ? 'unknown_device'.tr : r.device.platformName),
-                          subtitle: Text(r.device.remoteId.toString()),
-                          onTap: () { 
-                            _macController.text = r.device.remoteId.toString(); 
-                            if (_nameController.text.isEmpty && r.device.platformName.isNotEmpty) {
-                              _nameController.text = r.device.platformName;
-                            }
-                            DefaultTabController.of(tabContext).animateTo(0); 
-                          },
+                      if (_selectedProtocol == 'mould_king_classic') ...[
+                        const SizedBox(height: 100),
+                        const Icon(Icons.bluetooth_searching, size: 80, color: Colors.blueGrey),
+                        const SizedBox(height: 24),
+                        Text(
+                          'scan_not_required'.tr,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueGrey),
                         ),
-                      )),
+                      ] else ...[
+                        // Start/Stop Button
+                        ElevatedButton.icon(
+                          onPressed: _isScanning ? null : _startScan,
+                          icon: Icon(_isScanning ? Icons.sync : Icons.search),
+                          label: Text(_isScanning ? 'scan_running'.tr : 'btn_start_scan'.tr),
+                        ),
+                        
+                        if (_isScanning) const LinearProgressIndicator(),
+                        
+                        const SizedBox(height: 8),
+
+                        // Die Ergebnisliste mit RSSI-Anzeige
+                        ..._bleResults.map((r) {
+                          // RSSI Helfer-Logik direkt im Map
+                          IconData signalIcon;
+                          Color signalColor;
+                          if (r.rssi > -60) {
+                            signalIcon = Icons.signal_cellular_alt;
+                            signalColor = Colors.green;
+                          } else if (r.rssi > -80) {
+                            signalIcon = Icons.signal_cellular_alt_2_bar;
+                            signalColor = Colors.orange;
+                          } else {
+                            signalIcon = Icons.signal_cellular_alt_1_bar;
+                            signalColor = Colors.red;
+                          }
+
+                          return Card(
+                            child: ListTile(
+                              leading: const Icon(Icons.bluetooth),
+                              title: Text(r.device.platformName.isEmpty 
+                                  ? 'unknown_device'.tr 
+                                  : r.device.platformName),
+                              subtitle: Text(r.device.remoteId.toString()),
+                              
+                              // RSSI Anzeige rechts
+                              trailing: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(signalIcon, color: signalColor, size: 20),
+                                  Text(
+                                    '${r.rssi} dBm', 
+                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)
+                                  ),
+                                ],
+                              ),
+                              
+                              onTap: () { 
+                                // Scan stoppen (optional, aber empfohlen)
+                                if (_isScanning) _stopScan(); 
+                                
+                                _macController.text = r.device.remoteId.toString(); 
+                                if (_nameController.text.isEmpty) _nameController.text = r.device.platformName;
+                                
+                                // Zurück zum Setup-Tab
+                                DefaultTabController.of(tabContext).animateTo(0); 
+                              },
+                            ),
+                          );
+                        }),
+                      ],
                     ],
                   ),
-
                   // --- TAB 3: TUNING ---
                   ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
                       if (_selectedProtocol == 'lego_hub') ...[
                         const Text("PORTS", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                        const SizedBox(height: 10),
                         _buildPortDropdown('A'), _buildPortDropdown('B'),
-                        const Divider(height: 40),
                       ],
                       Text('tuning_speed_levels'.tr, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                      _buildSlider("V1", _v1, 0, 100, (v) => setState(() => _v1 = v), divisions: 20),
-                      _buildSlider("V2", _v2, 0, 100, (v) => setState(() => _v2 = v), divisions: 20),
-                      _buildSlider("V3", _v3, 0, 100, (v) => setState(() => _v3 = v), divisions: 20),
-                      _buildSlider("V4", _v4, 0, 100, (v) => setState(() => _v4 = v), divisions: 20),
-                      const Divider(height: 40),
-                      _buildSlider('tuning_ramping'.tr, _rampStep, 0.1, 3.0, (v) => setState(() => _rampStep = v), divisions: 29),
-                      _buildSlider('tuning_reverse'.tr, _reverseLimit, 0.1, 1.0, (v) => setState(() => _reverseLimit = v), divisions: 9),
-                      SwitchListTile(title: Text('tuning_auto_light'.tr), value: _autoLight, onChanged: (v) => setState(() => _autoLight = v)),
+                    // V1 (Langsamste Stufe): Schiebt alle anderen nach oben, wenn sie im Weg sind
+                      _buildSlider("V1", _v1, 0, 100, (v) {
+                        setState(() {
+                          _v1 = v;
+                          if (_v2 < _v1) _v2 = _v1;
+                          if (_v3 < _v1) _v3 = _v1;
+                          if (_v4 < _v1) _v4 = _v1;
+                        });
+                      }, divisions: 20),
+
+                      // V2: Drückt V1 nach unten, schiebt V3 und V4 nach oben
+                      _buildSlider("V2", _v2, 0, 100, (v) {
+                        setState(() {
+                          _v2 = v;
+                          if (_v1 > _v2) _v1 = _v2;
+                          if (_v3 < _v2) _v3 = _v2;
+                          if (_v4 < _v2) _v4 = _v2;
+                        });
+                      }, divisions: 20),
+
+                      // V3: Drückt V1 und V2 nach unten, schiebt V4 nach oben
+                      _buildSlider("V3", _v3, 0, 100, (v) {
+                        setState(() {
+                          _v3 = v;
+                          if (_v1 > _v3) _v1 = _v3;
+                          if (_v2 > _v3) _v2 = _v3;
+                          if (_v4 < _v3) _v4 = _v3;
+                        });
+                      }, divisions: 20),
+
+                      // V4: Drückt V1 - V3 nach unten
+                      _buildSlider("V4", _v4, 0, 100, (v) {
+                        setState(() {
+                          _v4 = v;
+                          if (_v1 > _v4) _v1 = _v4;
+                          if (_v2 > _v4) _v2 = _v4;
+                          if (_v3 > _v4) _v3 = _v4;
+                        });
+                      }, divisions: 20), 
+
+                      _buildSlider('tuning_ramping'.tr, _rampStep, 0.1, 3.0, (v) => setState(() => _rampStep = v)),
+     
+                      _buildSlider('ttuning_reverse'.tr, _reverseLimit, 0.1, 1.0, (v) => setState(() => _reverseLimit = v), divisions: 18,),
+                      
+                      if (_selectedProtocol != 'lego_duplo')
+                        SwitchListTile(
+                          title: Text('tuning_auto_light'.tr), 
+                          value: _autoLight, 
+                          onChanged: (v) => setState(() => _autoLight = v)
+                        ),
                       const SizedBox(height: 100),
                     ],
                   ),

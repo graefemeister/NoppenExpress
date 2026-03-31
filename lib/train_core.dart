@@ -2,6 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; 
+import 'mould_king_40_protocol.dart'; 
+
+
 
 // --- 1. DIE DATENSTRUKTUR ---
 class TrainConfig {
@@ -403,3 +407,277 @@ Future<void> connectAndInitialize() async {
     });
   }
 }
+
+// --- 6. Mould King Classic ---
+class MouldKingClassicController extends TrainController {
+  bool isRunning = false;
+  double _actualSpeed = 0.0; // Der gerampte Wert für den Antrieb
+  
+  static const platform = MethodChannel('com.noppenexpress/ble_native');
+  void Function()? onStatusChanged;
+
+  MouldKingClassicController(TrainConfig config) : super(config);
+
+  @override
+  void setLight(String port, bool isOn) {
+    // Port C bleibt manuell schaltbar
+    if (port == 'C') lightC = isOn ? 100 : 0;
+    
+    // Falls autoLight aus ist, kann man B auch manuell schalten
+    if (!config.autoLight && port == 'B') lightB = isOn ? 100 : 0;
+    
+    onStatusChanged?.call();
+  }
+
+  @override
+  void updateAutoLight() {
+    // Wird aufgerufen, wenn sich die Richtung (lastDirForward) ändert
+  }
+
+  Future<void> _broadcast(Uint8List payload) async {
+    try {
+      await platform.invokeMethod('startDinoAdvertising', { 'payload': payload });
+    } on PlatformException catch (e) {
+      debugPrint("Native Fehler: ${e.message}");
+    }
+  }
+
+  @override
+  Future<void> connectAndInitialize() async {
+    isRunning = true;
+    _actualSpeed = 0.0; 
+    targetSpeed = 0.0;
+    onStatusChanged?.call();
+
+    await _broadcast(MouldKing40Protocol.getHandshake());
+    await Future.delayed(const Duration(milliseconds: 600));
+    senderLoop(); 
+  }
+
+  @override
+  Future<void> senderLoop() async {
+    while (isRunning) {
+      final double target = targetSpeed; 
+      final double step = config.rampStep; 
+
+      // --- RAMPING ---
+      if (_actualSpeed < target) {
+        _actualSpeed += step;
+        if (_actualSpeed > target) _actualSpeed = target;
+      } else if (_actualSpeed > target) {
+        _actualSpeed -= step;
+        if (_actualSpeed < target) _actualSpeed = target;
+      }
+
+      // --- PORT LOGIK ---
+      
+      // Port A: Hauptmotor
+      int pA = _actualSpeed.round();
+      
+      // Port D: Zweiter Motor (Invertiert zu A)
+      int pD = -pA; 
+
+      // Port B: Fahrtabhängiges Licht
+      // Wenn autoLight an ist, bestimmt die Richtung die Polarität
+      int pB = 0;
+      if (config.autoLight) {
+        if (_actualSpeed > 0.5) pB = 100;       // Vorwärts: Volle Kraft positiv
+        else if (_actualSpeed < -0.5) pB = -100; // Rückwärts: Volle Kraft negativ
+        else pB = 0;                             // Stand: Licht aus
+      } else {
+        pB = lightB; // Manueller Modus
+      }
+
+      // Port C: Statisches Licht (manuell)
+      int pC = lightC;
+
+      // Senden an das 4-Kanal-Protokoll
+      final payload = MouldKing40Protocol.getDrive(pA, pB, pC, pD);
+      await _broadcast(payload);
+      
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+  }
+
+  @override
+  void emergencyStop() {
+    _actualSpeed = 0.0;
+    targetSpeed = 0.0;
+    // Alles auf 0 für den sofortigen Halt
+    final payload = MouldKing40Protocol.getDrive(0, 0, lightC, 0);
+    _broadcast(payload);
+    onStatusChanged?.call();
+  }
+
+  @override
+  void stop() {
+    isRunning = false;
+    onStatusChanged?.call();
+  }
+}
+
+// --- 7. Lego Duplo ---
+
+class LegoDuploController extends TrainController {
+  final String serviceUuid = "00001623-1212-efde-1623-785feabcd123";
+  final String charUuid = "00001624-1212-efde-1623-785feabcd123";
+
+  int _currentColorIndex = 10; // Weiß
+  bool isBlocked = false;
+  StreamSubscription<List<int>>? _subscription;
+
+  int _lastWheelValue = -1;
+  DateTime? _lastMovementDetected;
+  
+
+  LegoDuploController(super.config);
+
+  @override
+  Future<void> connectAndInitialize() async {
+    try {
+      device = BluetoothDevice.fromId(config.mac);
+      await device!.connect(timeout: const Duration(seconds: 5));
+
+      List<BluetoothService> services = await device!.discoverServices();
+      for (var s in services) {
+        if (s.uuid.toString().toLowerCase() == serviceUuid) {
+          for (var c in s.characteristics) {
+            if (c.uuid.toString().toLowerCase() == charUuid) {
+              writeCharacteristic = c;
+            }
+          }
+        }
+      }
+
+      if (writeCharacteristic != null) {
+        isRunning = true;
+        await writeCharacteristic!.setNotifyValue(true);
+        _subscription?.cancel();
+        _subscription = writeCharacteristic!.onValueReceived.listen(_handleNotification);
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        // Initialisierung des Hub-Protokolls
+        await writeCharacteristic!.write([0x05, 0x00, 0x01, 0x02, 0x02], withoutResponse: false);
+        // Aktivierung des Sound-Ports
+        await writeCharacteristic!.write([0x0a, 0x00, 0x41, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x01], withoutResponse: false);
+        // Aktivierung des Rad-Sensors (Port 18) ---
+        await writeCharacteristic!.write([0x0a, 0x00, 0x41, 0x12, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01], withoutResponse: false);        _sendColor(10);
+        onStatusChanged?.call();
+        senderLoop();
+      }
+    } catch (e) {
+      debugPrint("Verbindungsfehler: $e");
+    }
+  }
+
+  void _handleNotification(List<int> data) {
+    // 0x45 = Sensor-Wert hat sich geändert
+    // 0x12 = Das ist Port 18 (unser Tacho!)
+    if (data.length >= 5 && data[2] == 0x45 && data[3] == 0x12) {
+      
+      int currentWheelValue = data[4]; 
+      
+      // Hat sich das Rad weitergedreht?
+      if (currentWheelValue != _lastWheelValue) {
+        _lastWheelValue = currentWheelValue;       // Neuen Wert merken
+        _lastMovementDetected = DateTime.now();    // Stoppuhr auf Null setzen!
+      }
+    }
+  }
+
+  @override
+  Future<void> senderLoop() async {
+    int lastSent = -999;
+    double step = config.rampStep;
+
+    while (isRunning) {
+      // --- 1. Ramping (Sanftes Beschleunigen/Bremsen) ---
+      if (currentSpeed < targetSpeed) {
+        currentSpeed = (currentSpeed + step).clamp(-100, targetSpeed);
+      } else if (currentSpeed > targetSpeed) {
+        currentSpeed = (currentSpeed - step).clamp(targetSpeed, 100);
+      }
+
+      int speedInt = currentSpeed.round().clamp(-100, 100);
+
+      // --- 2. Stoppuhr aufziehen und verwalten ---
+      if (speedInt != 0 && _lastMovementDetected == null) {
+        _lastMovementDetected = DateTime.now();
+        if (isBlocked) {
+          isBlocked = false;
+          onStatusChanged?.call(); // Dem UI sagen, dass alles wieder gut ist
+        }
+      } else if (speedInt == 0 && targetSpeed == 0) {
+        _lastMovementDetected = null;
+      }
+
+      // --- 3. Das System synchronisieren (Der Wächter) ---
+      if (targetSpeed != 0 && _lastMovementDetected != null && !isBlocked) {
+        final timeSinceMove = DateTime.now().difference(_lastMovementDetected!).inMilliseconds;
+        
+        // Wenn über 2,5 Sekunden kein Impuls von Port 18 kam:
+        if (timeSinceMove > 2500) {
+          debugPrint(">>> [SYSTEM-SYNC] Lok hat physisch gestoppt. App wird aktualisiert.");
+          
+          targetSpeed = 0;
+          currentSpeed = 0;
+          isBlocked = true; 
+          
+          onStatusChanged?.call(); // UI-Update anstoßen
+        }
+      }
+
+      // --- 4. Befehle an den Motor (Port 0) senden ---
+      if (speedInt != lastSent) {
+        // Während des Hochfahrens kein Feedback (0x01), um Log zu schonen.
+        // Erst beim Erreichen des Zielwerts Feedback (0x11) anfordern.
+        bool isAtTarget = (speedInt == targetSpeed.round());
+        int executionMode = isAtTarget ? 0x11 : 0x01;
+
+        writeCharacteristic?.write([0x08, 0x00, 0x81, 0x00, executionMode, 0x51, 0x00, speedInt.toUnsigned(8)], withoutResponse: true);
+        lastSent = speedInt;
+      }
+      
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+  }
+
+  void playSound(int soundId) {
+    writeCharacteristic?.write([0x08, 0x00, 0x81, 0x01, 0x11, 0x51, 0x01, soundId], withoutResponse: false);
+  }
+
+  void _sendColor(int colorIndex) {
+    writeCharacteristic?.write([0x08, 0x00, 0x81, 0x11, 0x11, 0x51, 0x00, colorIndex], withoutResponse: true);
+  }
+
+  @override
+  void setLight(String port, bool isOn) {
+    _currentColorIndex = isOn ? 10 : 0;
+    _sendColor(_currentColorIndex);
+    lightA = isOn ? 100 : 0;
+    onStatusChanged?.call();
+  }
+
+  @override
+  void cycleColor() {
+    List<int> colors = [10, 9, 7, 6, 3, 2];
+    int currentPos = colors.indexOf(_currentColorIndex);
+    _currentColorIndex = colors[(currentPos + 1) % colors.length];
+    _sendColor(_currentColorIndex);
+    lightA = 100;
+    onStatusChanged?.call();
+  }
+
+  @override
+  void updateAutoLight() {}
+
+  @override
+  Future<void> disconnect() async {
+    _subscription?.cancel();
+    isRunning = false;
+    await device?.disconnect();
+    super.disconnect();
+  }
+}
+
+
