@@ -3,11 +3,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'dart:async';
-import 'train_core.dart';
-import 'dart:io'; 
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'dart:io'; 
+import 'dart:async';
+import 'controllers/controllers.dart';
 import 'localization.dart';
 
 class WorkshopScreen extends StatefulWidget {
@@ -74,7 +74,11 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
       case 'lego_duplo': return 'template_lego_duplo'.tr;
       case 'mould_king': return 'template_mould_king'.tr;
       case 'mould_king_classic': return 'template_mould_king_classic'.tr;
+      case 'mould_king_rwy': return 'template_mould_king_rwy_controller'.tr;
       case 'circuit_cube': return 'template_circuit_cube'.tr;
+      case 'qiqiazi': return 'template_mould_king'.tr;
+      case 'genericquadcontroller': return 'template_mould_king'.tr;
+      
       default: return "";
     }
   }
@@ -110,7 +114,7 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
   }
 
   void _save() {
-    if (_selectedProtocol == 'mould_king_classic') {
+    if (_selectedProtocol == 'mould_king_classic'|| _selectedProtocol == 'mould_king_rwy') {
       _macController.text = "00:00:00:00:00:00"; 
     }
 
@@ -138,10 +142,13 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
     TrainController newTrain;
     switch (_selectedProtocol) {
       case 'lego_hub': newTrain = LegoHubController(config); break;
-      case 'lego_duplo': newTrain = LegoDuploController(config); break; // <--- NEU
+      case 'lego_duplo': newTrain = LegoDuploController(config); break; 
       case 'circuit_cube': newTrain = CircuitCubeController(config); break;
       case 'mould_king_classic': newTrain = MouldKingClassicController(config); break;
-      default: newTrain = MouldKingController(config);
+      case 'mould_king_rwy': newTrain = MouldKingRwyController(config); break;
+      case 'qiqiazi': newTrain = QiqiaziController(config); break;
+      case 'genericquadcontroller': newTrain = GenericQuadController(config); break;
+            default: newTrain = MouldKingController(config);
     }
     Navigator.pop(context, newTrain);
   }
@@ -152,8 +159,8 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
       builder: (bc) => SafeArea(
         child: Wrap(
           children: [
-            ListTile(leading: const Icon(Icons.photo_camera), title: const Text('Foto aufnehmen'), onTap: () { Navigator.pop(bc); _getImage(ImageSource.camera); }),
-            ListTile(leading: const Icon(Icons.photo_library), title: const Text('Aus Galerie wählen'), onTap: () { Navigator.pop(bc); _getImage(ImageSource.gallery); }),
+            ListTile(leading: const Icon(Icons.photo_camera), title: Text('take_picture'.tr), onTap: () { Navigator.pop(bc); _getImage(ImageSource.camera); }),
+            ListTile(leading: const Icon(Icons.photo_library), title: Text('choose_picture'.tr), onTap: () { Navigator.pop(bc); _getImage(ImageSource.gallery); }),
           ],
         ),
       ),
@@ -279,7 +286,12 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
                           DropdownMenuItem(value: 'lego_duplo', child: Text('LEGO DUPLO')),
                           DropdownMenuItem(value: 'mould_king', child: Text('Mould King')),
                           DropdownMenuItem(value: 'mould_king_classic', child: Text('Mould King 4.0 (Broadcast)')),
+                          DropdownMenuItem(value: 'mould_king_rwy', child: Text('Mould King (RWY)')),
                           DropdownMenuItem(value: 'circuit_cube', child: Text('Circuit Cube')),
+                          DropdownMenuItem(value: 'qiqiazi', child: Text('QIQIAZI')),
+                          DropdownMenuItem(value: 'genericquadcontroller', child: Text('GenericQuadController')),
+
+
                         ],
                         onChanged: (newValue) {
                           setState(() {
@@ -309,7 +321,7 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
                         decoration: InputDecoration(labelText: 'label_name'.tr, border: const OutlineInputBorder(), isDense: true)
                       ),
                       const SizedBox(height: 16),
-                      if (_selectedProtocol != 'mould_king_classic') ...[
+                      if (!(_selectedProtocol == 'mould_king_classic'|| _selectedProtocol == 'mould_king_rwy'))...[
                         TextField(
                           controller: _macController, 
                           decoration: InputDecoration(labelText: 'label_mac'.tr, border: const OutlineInputBorder(), isDense: true, hintText: "AC:3E:B1...")
@@ -328,7 +340,7 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
                   ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      if (_selectedProtocol == 'mould_king_classic') ...[
+                      if (_selectedProtocol == 'mould_king_classic' || _selectedProtocol == 'mould_king_rwy') ...[
                         const SizedBox(height: 100),
                         const Icon(Icons.bluetooth_searching, size: 80, color: Colors.blueGrey),
                         const SizedBox(height: 24),
@@ -452,7 +464,7 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
 
                       _buildSlider('tuning_ramping'.tr, _rampStep, 0.1, 3.0, (v) => setState(() => _rampStep = v)),
      
-                      _buildSlider('ttuning_reverse'.tr, _reverseLimit, 0.1, 1.0, (v) => setState(() => _reverseLimit = v), divisions: 18,),
+                      _buildSlider('tuning_reverse'.tr, _reverseLimit, 0.1, 1.0, (v) => setState(() => _reverseLimit = v), divisions: 18,),
                       
                       if (_selectedProtocol != 'lego_duplo')
                         SwitchListTile(

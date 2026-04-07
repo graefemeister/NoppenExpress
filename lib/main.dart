@@ -13,15 +13,17 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+//import 'package:provider/provider.dart';
 
 
-import 'train_core.dart'; 
+import 'controllers/controllers.dart'; 
 import 'train_manager.dart';
 import 'workshop_screen.dart'; 
 import 'settings_manager.dart';
 import 'settings_screen.dart';
 import 'readme_screen.dart';
 import 'localization.dart';
+import 'diagnostic_screen.dart';
 
 void main() async {
   LicenseRegistry.addLicense(() async* {
@@ -170,7 +172,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
 
   Future<void> _requestPermissions() async {
     if (Platform.isAndroid) {
-      await [Permission.bluetoothScan, Permission.bluetoothConnect, Permission.location].request();
+      await [Permission.bluetoothScan, Permission.bluetoothAdvertise, Permission.bluetoothConnect, Permission.location].request();
     }
     setState(() { _permissionsGranted = true; });
   }
@@ -297,7 +299,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   showAboutDialog(
     context: context,
     applicationName: "NoppenExpress",
-    applicationVersion: "Version 1.9.5",
+    applicationVersion: "Version 1.9.6",
     applicationIcon: ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: Image.asset(
@@ -455,6 +457,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                   if (val == 'settings') {
                     Navigator.push(context, MaterialPageRoute(builder: (c) => const SettingsScreen())).then((_) => widget.onSettingsChanged());
                   }
+                  if (val == 'diagnosis') {Navigator.push(context, MaterialPageRoute(builder: (context) => const UniversalDiagnosticScreen(),),);}
                 },
                 itemBuilder: (ctx) => [
                   PopupMenuItem(value: 'export', child: Text('export'.tr)),
@@ -462,7 +465,9 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                   const PopupMenuDivider(),
                   PopupMenuItem(value: 'readme', child: Row(children: [const Icon(Icons.menu_book, size: 20), const SizedBox(width: 8), Text('readme'.tr)])),
                   PopupMenuItem(value: 'settings', child: Row(children: [const Icon(Icons.settings, size: 20), const SizedBox(width: 8), Text('settings'.tr)])),
-                  PopupMenuItem(value: 'about', child: Row(children: [const Icon(Icons.info_outline, size: 20), const SizedBox(width: 8), Text('about'.tr)])),                ],
+                  PopupMenuItem(value: 'about', child: Row(children: [const Icon(Icons.info_outline, size: 20), const SizedBox(width: 8), Text('about'.tr)])),                
+                  PopupMenuItem(value: 'diagnosis', child: Row(children: [const Icon(Icons.build, size: 20), const SizedBox(width: 8), Text('diagnosis'.tr)])),
+                  ],
               ),
             ],
           ),
@@ -594,9 +599,12 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
                             switch (config.protocol) {
                               case 'mould_king': return 'Mould King (BLE)';
                               case 'mould_king_classic': return 'Mould King (Broadcast)';
+                              case 'mould_king_rwy': return 'Mould King (RWY)';
                               case 'lego_hub': return 'LEGO Powered Up';
                               case 'lego_duplo': return 'LEGO DUPLO';
                               case 'circuit_cube': return 'Circuit Cube';
+                              case 'qiqiazi': return 'Qiqiai';
+                              case 'genericquadcontroller': return 'Generic';
                               default: return 'Unbekanntes Protokoll';
                             }
                           }(),
@@ -682,7 +690,7 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
               ),
 
               const SizedBox(height: 32), 
-              
+
               // --- ZUBEHÖR (DYNAMIC LIGHTS & SOUNDS) ---
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

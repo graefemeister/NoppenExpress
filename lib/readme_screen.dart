@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 class ReadmeScreen extends StatelessWidget {
@@ -9,7 +10,7 @@ class ReadmeScreen extends StatelessWidget {
       // Lädt die Textdatei aus dem Assets-Ordner
       return await rootBundle.loadString('assets/readme.txt');
     } catch (e) {
-      return "Fehler: readme.txt konnte nicht geladen werden.";
+      return 'readme_error'.tr;
     }
   }
 
@@ -21,7 +22,7 @@ class ReadmeScreen extends StatelessWidget {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: const Text("Anleitung"),
+          title: Text('readme'.tr),
         ),
         body: FutureBuilder<String>(
           future: _loadReadme(),

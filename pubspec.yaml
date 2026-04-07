@@ -1,7 +1,7 @@
 name: noppenexpress_ble
 description: "Smarte Steuerung für Klemmbaustein-Loks via BLE & SPP."
 publish_to: 'none'
-version: 1.9.5+7
+version: 1.9.6+8
 
 environment:
   sdk: ^3.11.1
@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  get: ^4.6.6
   cupertino_icons: ^1.0.8
   flutter_blue_plus: ^1.31.0
   #flutter_bluetooth_serial: ^0.4.0
@@ -20,6 +21,7 @@ dependencies:
   file_picker: ^10.3.10
   wakelock_plus: ^1.4.0
   url_launcher: ^6.3.2
+  provider: ^6.1.5+1
 
 dev_dependencies:
   flutter_test:
