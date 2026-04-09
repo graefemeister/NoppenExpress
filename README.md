@@ -1,17 +1,21 @@
 # NoppenExpress (BLE) 🚂💨
 **Bedienungsanleitung / Manual** *(c) 2026 graefemeister@gmail.com*
-
+![](assets/NoppenExpress_small.png)
 ---
 
 ## 🇩🇪 DEUTSCH
 ### Willkommen bei NoppenExpress!
 Deine neue, smarte Schaltzentrale für Bluetooth-gesteuerte Klemmbaustein-Züge. Egal ob Rangierfahrt oder High-Speed, mit NoppenExpress hast du die volle Kontrolle.
 
+![App-Vorschau](Screenshots/Screenshot_20260328-191326.png)
+
 ### 🛠 DIE WERKSTATT (Loks anlegen)
 Nutze das **'+' Symbol**, um eine neue Lok anzulegen:
-* **Bluetooth Scan:** Findet die MAC-Adresse deines Hubs (Mould King 6.0, LEGO® Hub oder Circuit Cube) automatisch.
+* **Bluetooth Scan:** Findet die MAC-Adresse deines Hubs (Mould King 6.0, LEGO® Hub, Circuit Cube oder andere) automatisch.
 * **Personalisierung:** Gib der Lok einen Namen, lade ein eigenes Foto hoch und hinterlege Wartungs-Notizen.
 * **Tuning:** Passe die 4 Fahrstufen (V1-V4) an, setze ein Limit für Rückwärtsfahrten oder konfiguriere das Ramping für besonders weiches Anfahren und Bremsen.
+
+![App-Vorschau](Screenshots/Screenshot_20260410-001104.png)
 
 ### 🕹 DAS STEUERPULT
 Wähle eine Lok aus der seitlichen Liste, um sie zu verbinden:
@@ -38,7 +42,7 @@ Your new, smart command center for Bluetooth-controlled brick trains. Whether sh
 
 ### 🛠 THE WORKSHOP (Adding Trains)
 Tap the **'+' icon** to add a new train to your roster:
-* **Bluetooth Scan:** Automatically finds the MAC address of your hub (Mould King, LEGO® Hub, or Circuit Cube).
+* **Bluetooth Scan:** Automatically finds the MAC address of your hub (Mould King, LEGO® Hub, Circuit Cube or others).
 * **Personalization:** Give your train a name, upload a custom photo, and save maintenance notes.
 * **Tuning:** Customize the speeds for the 4 gears (V1-V4), set a reverse limit, or configure the ramping steps for buttery-smooth acceleration.
 
