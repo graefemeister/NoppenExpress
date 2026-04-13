@@ -2,6 +2,7 @@
 export 'train_controller.dart';
 export 'CircuitCubeController.dart';
 export 'LegoDuploController.dart';
+export 'PyBricksController.dart';
 export 'LegoHubController.dart';
 export 'MouldKingController.dart';
 export 'MouldKingClassicController.dart';

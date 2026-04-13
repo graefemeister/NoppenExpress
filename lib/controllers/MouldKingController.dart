@@ -1,4 +1,3 @@
-import 'train_controller.dart';
 import 'package:flutter/foundation.dart';               
 import 'package:flutter_blue_plus/flutter_blue_plus.dart'; 
 import 'dart:convert';                                 
@@ -49,17 +48,23 @@ class MouldKingController extends TrainController {
     return val.toRadixString(16).toUpperCase().padLeft(4, '0');
   }
 
+  // --- DIE HARDWARE-METHODE DER BASISKLASSE ---
+  @override
+  void sendHardwareCommand() {
+    // BLE Flood Protection:
+    // Da Mould King einen 100ms Heartbeat braucht, überlassen wir das Senden
+    // komplett der senderLoop(). Wenn wir hier bei jedem Ramping-Schritt (z.B. alle 10ms)
+    // funken würden, könnte der Bluetooth-Chip überlastet werden.
+    // Die Basisklasse aktualisiert im Hintergrund einfach 'currentSpeed'.
+  }
+
+  // --- DIE NEUE, "DUMME" SENDER-LOOP ---
   @override
   Future<void> senderLoop() async {
     while (isRunning && writeCharacteristic != null) {
-      double step = (targetSpeed.abs() > currentSpeed.abs()) ? config.rampStep : 3.0;
-      if (currentSpeed == 0 && targetSpeed != 0) currentSpeed = targetSpeed > 0 ? 20.0 : -20.0;
-      
-      if (currentSpeed < targetSpeed) {
-        currentSpeed = (currentSpeed + step > targetSpeed) ? targetSpeed : currentSpeed + step;
-      } else if (currentSpeed > targetSpeed) {
-        currentSpeed = (currentSpeed - step < targetSpeed) ? targetSpeed : currentSpeed - step;
-      }
+      // KEINE MATHEMATIK MEHR HIER! 
+      // Das Ramping übernimmt das zentrale Gehirn (TrainController).
+      // Wir holen uns einfach den von dort vorbereiteten currentSpeed-Wert.
 
       String hexA = _pctToHex(currentSpeed);
       String hexD = currentSpeed != 0 ? _pctToHex(-currentSpeed) : "0000";
@@ -71,7 +76,11 @@ class MouldKingController extends TrainController {
       try {
         await writeCharacteristic!.write([0x01], withoutResponse: true);
         await writeCharacteristic!.write(utf8.encode(cmdStr), withoutResponse: true);
-      } catch (e) { break; }
+      } catch (e) { 
+        break; 
+      }
+      
+      // Fester 100ms Heartbeat (hält die Lok am Leben und verhindert BLE-Spam)
       await Future.delayed(const Duration(milliseconds: 100));
     }
   }

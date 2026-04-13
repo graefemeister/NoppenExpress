@@ -1,10 +1,7 @@
-import 'train_controller.dart';
+import 'dart:async';
 import 'package:flutter/foundation.dart';               
 import 'package:flutter_blue_plus/flutter_blue_plus.dart'; 
-import 'dart:convert';                                 
 import 'train_controller.dart';
-import 'dart:async'; 
-
 
 class LegoDuploController extends TrainController {
   final String serviceUuid = "00001623-1212-efde-1623-785feabcd123";
@@ -17,7 +14,6 @@ class LegoDuploController extends TrainController {
   int _lastWheelValue = -1;
   DateTime? _lastMovementDetected;
   
-
   LegoDuploController(super.config);
 
   @override
@@ -48,9 +44,13 @@ class LegoDuploController extends TrainController {
         await writeCharacteristic!.write([0x05, 0x00, 0x01, 0x02, 0x02], withoutResponse: false);
         // Aktivierung des Sound-Ports
         await writeCharacteristic!.write([0x0a, 0x00, 0x41, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x01], withoutResponse: false);
-        // Aktivierung des Rad-Sensors (Port 18) ---
-        await writeCharacteristic!.write([0x0a, 0x00, 0x41, 0x12, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01], withoutResponse: false);        _sendColor(10);
+        // Aktivierung des Rad-Sensors (Port 18)
+        await writeCharacteristic!.write([0x0a, 0x00, 0x41, 0x12, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01], withoutResponse: false);        
+        
+        _sendColor(10);
         onStatusChanged?.call();
+        
+        // Startet jetzt nur noch den Blockade-Wächter
         senderLoop();
       }
     } catch (e) {
@@ -59,74 +59,67 @@ class LegoDuploController extends TrainController {
   }
 
   void _handleNotification(List<int> data) {
-    // 0x45 = Sensor-Wert hat sich geändert
-    // 0x12 = Das ist Port 18 (unser Tacho!)
+    // 0x45 = Sensor-Wert hat sich geändert, 0x12 = Port 18 (Tacho)
     if (data.length >= 5 && data[2] == 0x45 && data[3] == 0x12) {
-      
       int currentWheelValue = data[4]; 
       
       // Hat sich das Rad weitergedreht?
       if (currentWheelValue != _lastWheelValue) {
-        _lastWheelValue = currentWheelValue;       // Neuen Wert merken
+        _lastWheelValue = currentWheelValue;       
         _lastMovementDetected = DateTime.now();    // Stoppuhr auf Null setzen!
       }
     }
   }
 
+  // --- DIE HARDWARE-METHODE DER BASISKLASSE ---
+  @override
+  void sendHardwareCommand() {
+    if (!isRunning || writeCharacteristic == null) return;
+    
+    int speedInt = currentSpeed.round().clamp(-100, 100);
+
+    // 1. Stoppuhr aufziehen und verwalten
+    if (speedInt != 0 && _lastMovementDetected == null) {
+      _lastMovementDetected = DateTime.now();
+      if (isBlocked) {
+        isBlocked = false; // Blockade aufheben beim Neustart
+      }
+    } else if (speedInt == 0 && targetSpeed == 0) {
+      _lastMovementDetected = null;
+    }
+
+    // 2. Befehl an Port 0 senden
+    // Während des Ramping-Prozesses kein Feedback (0x01) fordern, um BLE zu schonen.
+    // Erst beim Erreichen des Zielwerts Feedback (0x11) fordern.
+    bool isAtTarget = (speedInt == targetSpeed.round());
+    int executionMode = isAtTarget ? 0x11 : 0x01;
+
+    writeCharacteristic?.write([0x08, 0x00, 0x81, 0x00, executionMode, 0x51, 0x00, speedInt.toUnsigned(8)], withoutResponse: true);
+  }
+
+  // --- DER WATCHDOG (Ehemals senderLoop) ---
   @override
   Future<void> senderLoop() async {
-    int lastSent = -999;
-    double step = config.rampStep;
-
     while (isRunning) {
-      // --- 1. Ramping (Sanftes Beschleunigen/Bremsen) ---
-      if (currentSpeed < targetSpeed) {
-        currentSpeed = (currentSpeed + step).clamp(-100, targetSpeed);
-      } else if (currentSpeed > targetSpeed) {
-        currentSpeed = (currentSpeed - step).clamp(targetSpeed, 100);
-      }
-
-      int speedInt = currentSpeed.round().clamp(-100, 100);
-
-      // --- 2. Stoppuhr aufziehen und verwalten ---
-      if (speedInt != 0 && _lastMovementDetected == null) {
-        _lastMovementDetected = DateTime.now();
-        if (isBlocked) {
-          isBlocked = false;
-          onStatusChanged?.call(); // Dem UI sagen, dass alles wieder gut ist
-        }
-      } else if (speedInt == 0 && targetSpeed == 0) {
-        _lastMovementDetected = null;
-      }
-
-      // --- 3. Das System synchronisieren (Der Wächter) ---
+      // Wenn Zug fahren soll (target != 0) und wir eigentlich eine Bewegung registriert hatten
       if (targetSpeed != 0 && _lastMovementDetected != null && !isBlocked) {
         final timeSinceMove = DateTime.now().difference(_lastMovementDetected!).inMilliseconds;
         
         // Wenn über 2,5 Sekunden kein Impuls von Port 18 kam:
         if (timeSinceMove > 2500) {
-          debugPrint(">>> [SYSTEM-SYNC] Lok hat physisch gestoppt. App wird aktualisiert.");
+          debugPrint(">>> [SYSTEM-SYNC] Lok hat physisch gestoppt. Blockade erkannt!");
           
-          targetSpeed = 0;
-          currentSpeed = 0;
           isBlocked = true; 
           
-          onStatusChanged?.call(); // UI-Update anstoßen
+          // Wir rufen emergencyStop() der Basisklasse auf. Das macht ALLES automatisch:
+          // Setzt currentSpeed=0, targetSpeed=0, killt Ramping-Timer, funkt sofort 0
+          // und pusht das UI-Update. Absolut sauber!
+          emergencyStop(); 
         }
       }
-
-      // --- 4. Befehle an den Motor (Port 0) senden ---
-      if (speedInt != lastSent) {
-        // Während des Hochfahrens kein Feedback (0x01), um Log zu schonen.
-        // Erst beim Erreichen des Zielwerts Feedback (0x11) anfordern.
-        bool isAtTarget = (speedInt == targetSpeed.round());
-        int executionMode = isAtTarget ? 0x11 : 0x01;
-
-        writeCharacteristic?.write([0x08, 0x00, 0x81, 0x00, executionMode, 0x51, 0x00, speedInt.toUnsigned(8)], withoutResponse: true);
-        lastSent = speedInt;
-      }
       
-      await Future.delayed(const Duration(milliseconds: 100));
+      // 200ms Schlafenszeit reichen für einen Watchdog völlig aus
+      await Future.delayed(const Duration(milliseconds: 200)); 
     }
   }
 
@@ -146,7 +139,7 @@ class LegoDuploController extends TrainController {
     onStatusChanged?.call();
   }
 
-  @override
+  // Eigene LEGO Methode (Feuert z.B. der ActionChip im ControlPanel ab)
   void cycleColor() {
     List<int> colors = [10, 9, 7, 6, 3, 2];
     int currentPos = colors.indexOf(_currentColorIndex);
@@ -161,9 +154,10 @@ class LegoDuploController extends TrainController {
 
   @override
   Future<void> disconnect() async {
-    _subscription?.cancel();
-    isRunning = false;
-    await device?.disconnect();
-    super.disconnect();
+    _subscription?.cancel(); // LEGO-spezifische Listener killen
+    
+    // Alles andere (isRunning=false, Ramping stoppen, Bluetooth trennen) 
+    // übernimmt die Basisklasse:
+    await super.disconnect(); 
   }
 }

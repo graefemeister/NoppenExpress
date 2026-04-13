@@ -92,4 +92,12 @@ class MouldKingRwyController extends TrainController {
       await platform.invokeMethod('stopDinoAdvertising');
     } catch(e) {}
   }
+
+  @override
+  void sendHardwareCommand() {
+    // Hier kommt später der Funk-Befehl rein.
+    // Für Züge mit eigener Sende-Schleife (Heartbeat) bleibt das evtl. sogar leer.
+  }
+
+  
 }

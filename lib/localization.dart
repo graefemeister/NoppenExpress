@@ -72,6 +72,7 @@ class L10n {
       'label_protocol': 'Protokoll',
       'template_lego_hub': "Standard-Belegung:\n• Port A: Antrieb\n• Port B: Licht/Motor\nVerbindung: BLE-Scan.\n\nTipp:\nHalte die Lok in der Liste lange gedrückt, um die Einstellungen und diesen Infokasten zu bearbeiten",
       'template_lego_duplo': "Duplo-Lok, ohne Ports.\n\nTipp:\nHalte die Lok in der Liste lange gedrückt, um die Einstellungen und diesen Infokasten zu bearbeiten",
+      'template_pybricks_hub': "Standard-Belegung:\n• Port A: Antrieb\n• Port B: Licht/Motor\nVerbindung: BLE-Scan.\n\nTipp:\nHalte die Lok in der Liste lange gedrückt, um die Einstellungen und diesen Infokasten zu bearbeiten",
       'template_mould_king': "Standard-Belegung:\n• Port A: Antrieb\n• Port B/C: Licht (fahrtabhängig)\n• Port D: evt. 2. Antrieb (invertiert)\nVerbindung: BLE-Scan.\n\nTipp:\nHalte die Lok in der Liste lange gedrückt, um die Einstellungen und diesen Infokasten zu bearbeiten",
       'template_mould_king_classic': "Standard-Belegung:\n• Port A: Antrieb\n• Port B/C: Licht (fahrtabhängig)\n• Port D: evt. 2. Antrieb (invertiert)\nVerbindung: Broadcast-Modus.\n\nTipp:\nHalte die Lok in der Liste lange gedrückt, um die Einstellungen und diesen Infokasten zu bearbeiten",
       'template_mould_king_rwy_controller': 'FUNKTIONIERT NOCH NICHT\nNur Motor, kein Licht',
@@ -101,7 +102,20 @@ class L10n {
       'readme': 'Anleitung',
       'take_picture': 'Foto aufnehmen',
       'choose_picture': 'Bild auswählen',
-
+      'panel_profile_1': "Profil I (Solo)",
+      'panel_profile_2': "Profil II (Last)",
+      'panel_mode_manual': "Manuell (+/-)",
+      'panel_mode_gears': "Fahrstufen",
+      'tuning_profile_1': "PROFIL I (Solo-Fahrt)",
+      'tuning_profile_2': "PROFIL II (Fahrt unter Last)",
+      'tuning_acceleration': "Beschleunigung (Fahrstufen)",
+      'tuning_brake': "Brems-Verzögerung",
+      'tuning_ramp_delay': "Rampen-Tempo (Manuell) [ms]",
+      'tuning_general_settings': "Allgemeine Einstellungen",
+      'tuning_delta_step': "Stufensprung (++/-- Tasten)",
+      'actual': "IST",
+      'target': "SOLL",
+      'unknown_protocol': "Unbekanntes Protokoll:",
 
 
 
@@ -173,6 +187,7 @@ class L10n {
       'port_none': 'None',
       'label_protocol': 'Protocol', 
       'template_lego_hub': "Standard Assignment:\n• Port A: Drive\n• Port B: Light/Drive\nConnection: BLE-Scan.\n\nTip: Press and hold the locomotive in the list to edit the settings and this info box.",
+      'template_pybricks_hub': "Standard Assignment:\n• Port A: Drive\n• Port B: Light/Drive\nConnection: BLE-Scan.\n\nTip: Press and hold the locomotive in the list to edit the settings and this info box.",
       'template_mould_king': "Standard Assignment:\n• Port A: Drive\n• Port B/C: Light (Auto-Light)\n• Port D: poss. 2nd Drive (inverted)\nConnection: BLE-Scan.\n\nTip: Press and hold the locomotive in the list to edit the settings and this info box.",
       'template_mould_king_classic': "Standard Assignment:\n• Port A: Drive\n• Port B/C: Licht (Auto-Light)\n• Port D: evt. 2. Antrieb (invertiert)\nConnection: Broadcast.\n\nTip: Press and hold the locomotive in the list to edit the settings and this info box.",
       'template_mould_king_rwy_controller': 'CURRENTLY NOT WORKING\nOnly motor, no light',
@@ -200,6 +215,21 @@ class L10n {
       'brake': 'Brake',
       'take_picture': 'Take Picture',
       'choose_picture': 'Choose Picture',
+      
+      'panel_profile_1': "Profile I (Solo)",
+      'panel_profile_2': "Profile II (Load)",
+      'panel_mode_manual': "Manual (+/-)",
+      'panel_mode_gears': "Gears",
+      'tuning_profile_1': "PROFILE I (Solo-Drive)",
+      'tuning_profile_2': "PROFILE II (Under Load)",
+      'tuning_acceleration': "Acceleration (Gears)",
+      'tuning_brake': "Braking Delay",
+      'tuning_ramp_delay': "Ramping-Tempo (Manual) [ms]",
+      'tuning_general_settings': "General Settings",
+      'tuning_delta_step': "Step Size (++/-- Buttons)",
+      'actual': "ACTUAL",
+      'target': "TARGET",
+      'unknown_protocol': "Unknown Protocol:",
 
 
     }

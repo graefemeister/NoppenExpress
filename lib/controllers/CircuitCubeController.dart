@@ -1,7 +1,6 @@
-import 'train_controller.dart';
+import 'dart:async';
 import 'package:flutter/foundation.dart';               
 import 'package:flutter_blue_plus/flutter_blue_plus.dart'; 
-import 'dart:convert';                                 
 import 'train_controller.dart';
 
 class CircuitCubeController extends TrainController {
@@ -35,10 +34,12 @@ class CircuitCubeController extends TrainController {
     if (writeCharacteristic != null) {
       isRunning = true;
       onStatusChanged?.call();
-      senderLoop();
+      // Die endlose senderLoop() wird hier nicht mehr gestartet, 
+      // da wir ab sofort "On-Demand" funken!
     }
   }
 
+  // Die Funktion, die den Prozentwert (0-100) in das Cube-Format (0-255) umrechnet
   void _sendCommand(String channel, int speed) {
     if (writeCharacteristic == null || !isRunning) return;
     String dir = speed >= 0 ? "+" : "-";
@@ -47,24 +48,23 @@ class CircuitCubeController extends TrainController {
     writeCharacteristic!.write(command.codeUnits, withoutResponse: true);
   }
 
+  // --- DIE ZENTRALE HARDWARE-METHODE ---
+  @override
+  void sendHardwareCommand() {
+    // Wird von der Basisklasse aufgerufen, wann immer das Ramping 
+    // die Geschwindigkeit ändert, oder bei einem Notstopp (currentSpeed = 0).
+    config.portSettings.forEach((port, role) {
+      if (role.toLowerCase() == 'motor') {
+        _sendCommand(port, currentSpeed.toInt());
+      }
+    });
+  }
+
+  // --- DIE SENDER-LOOP IST JETZT ARBEITSLOS ---
   @override
   Future<void> senderLoop() async {
-    while (isRunning) {
-      if (currentSpeed != targetSpeed) {
-        if (currentSpeed < targetSpeed) {
-          currentSpeed += config.rampStep;
-          if (currentSpeed > targetSpeed) currentSpeed = targetSpeed;
-        } else if (currentSpeed > targetSpeed) {
-          currentSpeed -= config.rampStep;
-          if (currentSpeed < targetSpeed) currentSpeed = targetSpeed;
-        }
-        
-        config.portSettings.forEach((port, role) {
-          if (role.toLowerCase() == 'motor') _sendCommand(port, currentSpeed.toInt());
-        });
-      }
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
+    // Bleibt komplett leer, da der Circuit Cube keinen Heartbeat braucht.
+    // Alles wird effizient über sendHardwareCommand abgewickelt!
   }
 
   @override
@@ -85,12 +85,4 @@ class CircuitCubeController extends TrainController {
 
   @override
   void updateAutoLight() {}
-
-  @override
-  void emergencyStop() {
-    super.emergencyStop();
-    config.portSettings.forEach((port, role) {
-      if (role.toLowerCase() == 'motor') _sendCommand(port, 0);
-    });
-  }
 }

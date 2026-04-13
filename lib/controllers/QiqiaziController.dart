@@ -1,7 +1,6 @@
 import 'train_controller.dart';
 import 'package:flutter/foundation.dart';               
 import 'package:flutter_blue_plus/flutter_blue_plus.dart'; 
-import 'dart:convert';                                 
 
 class QiqiaziController extends TrainController {
   QiqiaziController(super.config);
@@ -11,7 +10,6 @@ class QiqiaziController extends TrainController {
     debugPrint("Qiqiazi: Starte Verbindung zu ${config.mac}...");
     device = BluetoothDevice.fromId(config.mac);
 
-    // 1. Connection-Listener (Exakt wie MouldKing)
     device!.connectionState.listen((state) {
       debugPrint("Qiqiazi: Verbindungsstatus geändert: $state");
       if (state == BluetoothConnectionState.disconnected && isRunning) {
@@ -21,10 +19,7 @@ class QiqiaziController extends TrainController {
     });
 
     try {
-      // Verbindung herstellen (mit Catch für "already connected")
       await device!.connect().catchError((e) => debugPrint("Qiqiazi: Connect Hinweis: $e")); 
-      
-      // Kurze Pause wie im MouldKing
       await Future.delayed(const Duration(milliseconds: 500));
       
       debugPrint("Qiqiazi: Suche Services...");
@@ -32,7 +27,6 @@ class QiqiaziController extends TrainController {
       
       for (var service in services) {
         for (var characteristic in service.characteristics) {
-          // Wir suchen nach der Qiqiazi-Schreib-Charakteristik FFF2
           if (characteristic.uuid.toString().toLowerCase().contains("fff2")) {
             writeCharacteristic = characteristic;
             debugPrint("Qiqiazi: Schreib-Charakteristik gefunden: ${characteristic.uuid}");
@@ -41,17 +35,13 @@ class QiqiaziController extends TrainController {
       }
 
       if (writeCharacteristic != null) {
-        // Hier setzen wir die Flags, die das UI braucht!
         isRunning = true;
         debugPrint("Qiqiazi: isRunning ist jetzt TRUE. Melde Status an UI...");
-        
-        // WICHTIG: Das UI muss erfahren, dass isRunning jetzt true ist
         onStatusChanged?.call();
         
         // Initialer Stopp-Befehl
         _sendRaw(0, 0, 0, 0);
         
-        // Start der Sende-Schleife
         senderLoop();
       } else {
         debugPrint("Qiqiazi: FEHLER - FFF2 Charakteristik nicht gefunden!");
@@ -63,24 +53,23 @@ class QiqiaziController extends TrainController {
     }
   }
 
+  // --- DIE HARDWARE-METHODE DER BASISKLASSE ---
+  @override
+  void sendHardwareCommand() {
+    // BLE Flood Protection:
+    // Der Qiqiazi braucht einen regelmäßigen Heartbeat. Wir lassen 
+    // das Senden komplett in der senderLoop, damit wir den BLE-Chip 
+    // nicht durch zu schnelle Ramping-Timer-Aufrufe überlasten.
+  }
+
+  // --- DIE NEUE, "DUMME" SENDER-LOOP ---
   @override
   Future<void> senderLoop() async {
     debugPrint("Qiqiazi: SenderLoop gestartet");
     while (isRunning && writeCharacteristic != null) {
-      // --- 1. Ramping Logik (Exakt wie MouldKing) ---
-      double step = (targetSpeed.abs() > currentSpeed.abs()) ? config.rampStep : 3.0;
-      
-      if (currentSpeed == 0 && targetSpeed != 0) {
-        currentSpeed = targetSpeed > 0 ? 20.0 : -20.0;
-      }
-      
-      if (currentSpeed < targetSpeed) {
-        currentSpeed = (currentSpeed + step > targetSpeed) ? targetSpeed : currentSpeed + step;
-      } else if (currentSpeed > targetSpeed) {
-        currentSpeed = (currentSpeed - step < targetSpeed) ? targetSpeed : currentSpeed - step;
-      }
+      // KEINE MATHEMATIK MEHR HIER! 
+      // Wir holen uns einfach direkt die aktuelle Geschwindigkeit aus der Basisklasse.
 
-      // --- 2. Port-Mapping (A/D Motor, B/C Licht) ---
       int b5 = 0; int b6 = 0; int b7 = 0; int b8 = 0;
       int absSpeed = (currentSpeed.abs() * 2.55).toInt().clamp(0, 255);
 
@@ -105,6 +94,8 @@ class QiqiaziController extends TrainController {
       }
 
       await _sendRaw(b5, b6, b7, b8);
+      
+      // Fester 100ms Heartbeat
       await Future.delayed(const Duration(milliseconds: 100));
     }
     debugPrint("Qiqiazi: SenderLoop beendet");
@@ -127,9 +118,9 @@ class QiqiaziController extends TrainController {
     }
   }
 
-  // --- Basis-Methoden ---
   @override
   void updateAutoLight() {
+    // Schaltet beide Lichter ein, wenn der Zug fahren soll (Sollwert)
     if (config.autoLight) {
       bool shouldBeOn = targetSpeed.abs() > 0.1;
       setLight('B', shouldBeOn);
@@ -146,12 +137,14 @@ class QiqiaziController extends TrainController {
   }
 
   @override
-  void stop() => targetSpeed = 0;
+  void emergencyStop() {
+    super.emergencyStop(); // Basisklasse stoppt Timer, setzt Werte auf 0 und ruft sendHardwareCommand auf
+    _sendRaw(0, 0, 0, 0);  // Sicherheitshalber sofort funken (wegen 100ms Delay in der Loop)
+  }
 
   @override
-  void emergencyStop() {
-    targetSpeed = 0;
-    currentSpeed = 0;
-    _sendRaw(0, 0, 0, 0);
+  Future<void> disconnect() async {
+    await super.disconnect();
+    await _sendRaw(0, 0, 0, 0); // Alles ausschalten beim Trennen
   }
 }

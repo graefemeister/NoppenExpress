@@ -4,31 +4,22 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import '../mould_king_40_protocol.dart'; 
 import 'dart:async';
-import 'dart:convert';
 
 class MouldKingClassicController extends TrainController {
-  bool isRunning = false;
-  double _actualSpeed = 0.0; // Der gerampte Wert für den Antrieb
-  
   static const platform = MethodChannel('com.noppenexpress/ble_native');
-  void Function()? onStatusChanged;
 
-  MouldKingClassicController(TrainConfig config) : super(config);
+  MouldKingClassicController(super.config);
 
   @override
   void setLight(String port, bool isOn) {
-    // Port C bleibt manuell schaltbar
     if (port == 'C') lightC = isOn ? 100 : 0;
-    
-    // Falls autoLight aus ist, kann man B auch manuell schalten
     if (!config.autoLight && port == 'B') lightB = isOn ? 100 : 0;
-    
     onStatusChanged?.call();
   }
 
   @override
   void updateAutoLight() {
-    // Wird aufgerufen, wenn sich die Richtung (lastDirForward) ändert
+    // Wird von der Basisklasse aufgerufen, wenn sich die Richtung ändert.
   }
 
   Future<void> _broadcast(Uint8List payload) async {
@@ -42,7 +33,7 @@ class MouldKingClassicController extends TrainController {
   @override
   Future<void> connectAndInitialize() async {
     isRunning = true;
-    _actualSpeed = 0.0; 
+    currentSpeed = 0.0; 
     targetSpeed = 0.0;
     onStatusChanged?.call();
 
@@ -51,36 +42,34 @@ class MouldKingClassicController extends TrainController {
     senderLoop(); 
   }
 
+  // --- DIE HARDWARE-METHODE DER BASISKLASSE ---
+  @override
+  void sendHardwareCommand() {
+    // BLE Flood Protection:
+    // Da wir per Broadcast funken, dürfen wir den Chip nicht bei 
+    // jedem 10ms-Ramping-Schritt mit Befehlen fluten! 
+    // Das Senden übernimmt exklusiv unsere senderLoop im 100ms-Takt.
+  }
+
+  // --- DIE NEUE, "DUMME" SENDER-LOOP ---
   @override
   Future<void> senderLoop() async {
     while (isRunning) {
-      final double target = targetSpeed; 
-      final double step = config.rampStep; 
+      // KEINE MATHEMATIK MEHR HIER!
+      // Wir lesen einfach die von der Basisklasse vorbereitete 'currentSpeed' aus.
 
-      // --- RAMPING ---
-      if (_actualSpeed < target) {
-        _actualSpeed += step;
-        if (_actualSpeed > target) _actualSpeed = target;
-      } else if (_actualSpeed > target) {
-        _actualSpeed -= step;
-        if (_actualSpeed < target) _actualSpeed = target;
-      }
-
-      // --- PORT LOGIK ---
-      
       // Port A: Hauptmotor
-      int pA = _actualSpeed.round();
+      int pA = currentSpeed.round();
       
       // Port D: Zweiter Motor (Invertiert zu A)
       int pD = -pA; 
 
       // Port B: Fahrtabhängiges Licht
-      // Wenn autoLight an ist, bestimmt die Richtung die Polarität
       int pB = 0;
       if (config.autoLight) {
-        if (_actualSpeed > 0.5) pB = 100;       // Vorwärts: Volle Kraft positiv
-        else if (_actualSpeed < -0.5) pB = -100; // Rückwärts: Volle Kraft negativ
-        else pB = 0;                             // Stand: Licht aus
+        if (currentSpeed > 0.5) pB = 100;       // Vorwärts
+        else if (currentSpeed < -0.5) pB = -100; // Rückwärts
+        else pB = 0;                             // Stand
       } else {
         pB = lightB; // Manueller Modus
       }
@@ -88,27 +77,35 @@ class MouldKingClassicController extends TrainController {
       // Port C: Statisches Licht (manuell)
       int pC = lightC;
 
-      // Senden an das 4-Kanal-Protokoll
+      // Werte in Payload verpacken und funken
       final payload = MouldKing40Protocol.getDrive(pA, pB, pC, pD);
       await _broadcast(payload);
       
+      // Der rettende 100ms Heartbeat
       await Future.delayed(const Duration(milliseconds: 100));
     }
   }
 
+  // --- SOFORTIGE REAKTION BEI NOTSTOPP ---
   @override
   void emergencyStop() {
-    _actualSpeed = 0.0;
-    targetSpeed = 0.0;
-    // Alles auf 0 für den sofortigen Halt
+    // Setzt in der Basisklasse alle Ziele auf 0 und stoppt den Timer
+    super.emergencyStop(); 
+    
+    // Wir feuern ZUSÄTZLICH sofort einen Halt-Befehl raus, 
+    // damit wir nicht auf die nächsten 100ms der Loop warten müssen!
     final payload = MouldKing40Protocol.getDrive(0, 0, lightC, 0);
     _broadcast(payload);
-    onStatusChanged?.call();
   }
 
+  // --- SAUBERES TRENNEN ---
   @override
-  void stop() {
-    isRunning = false;
-    onStatusChanged?.call();
+  Future<void> disconnect() async {
+    // Setzt isRunning = false (stoppt senderLoop) und killt Timer
+    await super.disconnect(); 
+    
+    // Einen letzten Halt-Befehl senden, damit der Zug nicht weiterfährt
+    final payload = MouldKing40Protocol.getDrive(0, 0, lightC, 0);
+    await _broadcast(payload);
   }
 }
