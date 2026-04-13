@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'train_core.dart'; 
+import 'controllers/controllers.dart'; 
+
 
 class TrainManager {
-  static const String _storageKey = 'lokleiter_trains';
+  static const String _storageKey = 'noppenexpress_trains';
 
   static Future<void> saveTrains(List<TrainController> controllers) async {
     final prefs = await SharedPreferences.getInstance();
@@ -26,8 +27,18 @@ class TrainManager {
         TrainConfig config = TrainConfig.fromMap(item);
         if (config.protocol == 'lego_hub') {
           list.add(LegoHubController(config));
+        } else if (config.protocol == 'lego_duplo') {
+          list.add(LegoDuploController(config));
         } else if (config.protocol == 'circuit_cube') {
           list.add(CircuitCubeController(config));
+        } else if (config.protocol == 'mould_king_classic') { 
+          list.add(MouldKingClassicController(config)); 
+        } else if (config.protocol == 'qiqiazi') { 
+          list.add(QiqiaziController(config)); 
+        } else if (config.protocol == 'genericquadcontroller') { 
+          list.add(GenericQuadController(config));   
+        } else if (config.protocol == 'mould_king_rwy') { 
+          list.add(MouldKingRwyController(config));           
         } else {
           // Standardfall für alle anderen Mould King Hubs
           list.add(MouldKingController(config));
