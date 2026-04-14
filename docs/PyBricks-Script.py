@@ -1,14 +1,11 @@
-from pybricks.hubs import CityHub
+from pybricks.hubs import CityHub # (Oder TechnicHub, falls ihr den nutzt)
 from pybricks.pupdevices import DCMotor
 from pybricks.parameters import Port
 from pybricks.tools import wait
-# Import für die Bluetooth-Kommunikation
-from pybricks.experimental import pupdevices
+import sys
+import uselect
 
 hub = CityHub()
-
-# Setup der Bluetooth UART Verbindung (aktiviert NUS automatisch)
-uart = pupdevices.UART(Port.A) # Port spielt für UART keine Rolle
 
 # Motoren initialisieren (passe die Ports an dein Modell an)
 motor_a = DCMotor(Port.A)
@@ -16,20 +13,25 @@ motor_b = DCMotor(Port.B)
 
 def set_motor(port_letter, speed_pct):
     speed = int(speed_pct)
-    # PyBricks nutzt Werte von -100 bis 100 für dc()
     if port_letter == "A":
         motor_a.dc(speed)
     elif port_letter == "B":
         motor_b.dc(speed)
 
-print("Hub wartet auf App...")
+# --- DIE MAGIE FÜR BLUETOOTH ---
+# Wir registrieren die Standard-Eingabe (Bluetooth UART) zum Mitlesen
+keyboard = uselect.poll()
+keyboard.register(sys.stdin)
+
+print("Hub wartet auf App-Befehle...")
 
 while True:
-    # Lese Daten aus der App (wartet auf das '\n' von unserer App)
-    if uart.waiting() > 0:
-        data = uart.readline().decode().strip()
+    # Prüfen, ob Daten über Bluetooth angekommen sind (poll > 0)
+    if keyboard.poll(0):
+        # Die gesendete Textzeile der App auslesen und Leerzeichen/Umbruch entfernen
+        data = sys.stdin.readline().strip()
         
-        # Erwartetes Format: "M:A:100" oder "L:B:0"
+        # Erwartetes Format unserer App: "M:A:100"
         parts = data.split(":")
         
         if len(parts) == 3:
@@ -39,8 +41,6 @@ while True:
             
             if cmd_type == "M":
                 set_motor(port, val)
-            elif cmd_type == "L":
-                # Hier könntest du Lichter (ColorLightMatrix) steuern
-                pass
-
-    wait(10) # Kurze Pause, damit der Hub nicht überhitzt
+                
+    # Kurze Pause, damit der Hub nicht überhitzt
+    wait(10)
