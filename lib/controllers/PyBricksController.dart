@@ -2,40 +2,55 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'train_controller.dart';
+import 'train_controller.dart'; 
 
 class PyBricksController extends TrainController {
-  // Standard UART Service (NUS) - ideal für Kommunikation mit PyBricks
+  // UUIDs für den Nordic UART Service (Standard bei Pybricks)
   final String serviceUuid = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"; 
-  final String charUuid = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";    
+  final String writeCharUuid = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";  
+  final String notifyCharUuid = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; 
 
-  PyBricksController(super.config) {
-    debugPrint("PyBricks: Controller geladen.");
-  }
+  bool _isSending = false;
+
+  PyBricksController(super.config);
 
   @override
   Future<void> connectAndInitialize() async {
-    device = BluetoothDevice.fromId(config.mac);
+    String expectedHubName = config.name ?? "Pybricks Hub"; 
+    debugPrint("PyBricks 🔍 Suche nach: '$expectedHubName'...");
 
-    device!.connectionState.listen((state) {
-      if (state == BluetoothConnectionState.disconnected && isRunning) {
-        isRunning = false;
-        onStatusChanged?.call();
+    BluetoothDevice? foundDevice;
+    var scanSubscription = FlutterBluePlus.scanResults.listen((results) {
+      for (ScanResult r in results) {
+        if (r.advertisementData.advName == expectedHubName || r.device.platformName == expectedHubName) {
+          foundDevice = r.device;
+          FlutterBluePlus.stopScan(); 
+        }
       }
     });
 
-    try {
-      // Ohne autoConnect für stabilere Android-Verbindungen
-      await device!.connect(timeout: const Duration(seconds: 5), autoConnect: false);
-      await Future.delayed(const Duration(milliseconds: 500));
+    await FlutterBluePlus.startScan(timeout: const Duration(seconds: 5));
+    await FlutterBluePlus.isScanning.where((val) => val == false).first;
+    scanSubscription.cancel();
 
-      List<BluetoothService> services = await device!.discoverServices(subscribeToServicesChanged: false);
+    if (foundDevice == null) return;
+    device = foundDevice;
+
+    try {
+      await device!.connect();
+      await Future.delayed(const Duration(milliseconds: 600));
+      List<BluetoothService> services = await device!.discoverServices();
 
       for (var service in services) {
         if (service.uuid.toString().toLowerCase() == serviceUuid) {
           for (var characteristic in service.characteristics) {
-            if (characteristic.uuid.toString().toLowerCase() == charUuid) {
+            if (characteristic.uuid.toString().toLowerCase() == writeCharUuid) {
               writeCharacteristic = characteristic;
+            }
+            if (characteristic.uuid.toString().toLowerCase() == notifyCharUuid) {
+              await characteristic.setNotifyValue(true);
+              // Hier hören wir auf das Feedback vom Hub
+              characteristic.lastValueStream.listen(_handleHubFeedback);
             }
           }
         }
@@ -43,77 +58,80 @@ class PyBricksController extends TrainController {
 
       if (writeCharacteristic != null) {
         isRunning = true;
+        
+        // REPL-Handshake: Wir schicken ein \n, um sicherzugehen, dass das Skript lauscht
+        await _sendRaw("\n"); 
+        
         onStatusChanged?.call();
-        // Keine senderLoop() nötig! Wir funken On-Demand.
-      } else {
-        debugPrint("PyBricks ❌ FEHLER: UART Schreib-Charakteristik nicht gefunden!");
-        await device!.disconnect();
+        debugPrint("PyBricks 🟢 Hybrid-Schnittstelle bereit!");
       }
     } catch (e) {
-      debugPrint("PyBricks Connect Error: $e");
-      isRunning = false;
-      onStatusChanged?.call();
+      debugPrint("PyBricks ❌ Fehler: $e");
     }
   }
 
-  // --- HILFSMETHODE: TEXT AN DEN HUB SENDEN ---
-  void _sendCommand(String command) {
-    if (writeCharacteristic == null || !isRunning) return;
+  // --- FEEDBACK-LOGIK (Die Galanterie) ---
+  void _handleHubFeedback(List<int> data) {
+    if (data.isEmpty) return;
+    String msg = utf8.decode(data).trim();
     
-    // Wir hängen ein '\n' an, damit das Python-Skript weiß, dass der Befehl zu Ende ist
-    List<int> bytes = utf8.encode("$command\n");
+    // Wir suchen nach "V_ACTUAL:XX" im Textstrom des Hubs
+    if (msg.contains("V_ACTUAL:")) {
+      try {
+        final parts = msg.split("V_ACTUAL:");
+        if (parts.length > 1) {
+          // Wir nehmen den ersten Wert nach dem Trenner
+          String valStr = parts[1].split("\n")[0].trim();
+          double hubSpeed = double.parse(valStr);
+          
+          // NUR wenn der Wert stark abweicht, updaten wir das UI 
+          // (Vermeidet Flackern beim Schieben des Sliders)
+          if ((hubSpeed - currentSpeed).abs() > 1) {
+            currentSpeed = hubSpeed;
+            onStatusChanged?.call(); // Slider in der UI bewegt sich mit!
+            debugPrint("PyBricks 🔄 Sync von Hub: $hubSpeed");
+          }
+        }
+      } catch (e) {
+        debugPrint("PyBricks ⚠️ Fehler beim Parsen: $msg");
+      }
+    }
+  }
+
+  // --- SENDE-LOGIK ---
+  Future<void> _sendToHub(String cmd) async {
+    if (writeCharacteristic == null || !isRunning || _isSending) return;
     
+    _isSending = true;
     try {
-      writeCharacteristic!.write(bytes, withoutResponse: true);
-      // debugPrint("PyBricks TX: $command"); // Auskommentieren für Debugging
-    } catch (e) {
-      debugPrint("PyBricks TX Error: $e");
+      // WICHTIG: Das \n ist das Signal für das Python-Skript (usys.stdin.read)
+      await writeCharacteristic!.write(utf8.encode("$cmd\n"), withoutResponse: true);
+      await Future.delayed(const Duration(milliseconds: 50)); 
+    } finally {
+      _isSending = false;
     }
   }
 
-  // --- DIE HARDWARE-METHODE DER BASISKLASSE ---
   @override
   void sendHardwareCommand() {
-    if (!isRunning) return;
-
-    int speedInt = currentSpeed.round().clamp(-100, 100);
-
-    // Wir lesen deine dynamische Werkstatt-Konfiguration aus!
-    config.portSettings.forEach((port, role) {
-      if (role.toLowerCase() == 'motor') {
-         _sendCommand("M:$port:$speedInt");
-      } else if (role.toLowerCase() == 'motor_inv') {
-         _sendCommand("M:$port:${-speedInt}");
-      }
-    });
-  }
-
-  @override
-  Future<void> senderLoop() async {
-    // Bleibt leer. Die Basisklasse kümmert sich um alles!
+    // Wandelt den Slider-Wert (-100 bis 100) in das Protokoll "V:XX" um
+    int s = currentSpeed.round().clamp(-100, 100);
+    _sendToHub("V:$s");
   }
 
   @override
   void setLight(String port, bool isOn) {
-    int val = isOn ? 100 : 0;
-    if (port.toUpperCase() == 'B') lightB = val;
-    if (port.toUpperCase() == 'C') lightC = val;
+    // Lichtsteuerung via "L:XX"
+    _sendToHub("L:${isOn ? 100 : 0}");
+  }
 
-    if (config.portSettings[port] == 'light') {
-       _sendCommand("L:$port:$val");
+  // Hilfsmethode für Initialisierung
+  Future<void> _sendRaw(String text) async {
+    if (writeCharacteristic != null) {
+      await writeCharacteristic!.write(utf8.encode(text), withoutResponse: true);
     }
-    onStatusChanged?.call();
   }
 
-  @override
-  void updateAutoLight() {
-    if (!isRunning || !config.autoLight) return;
-
-    config.portSettings.forEach((port, role) {
-      if (role.toLowerCase() == 'light') {
-        int val = lastDirForward ? 100 : 0;
-        _sendCommand("L:$port:$val");
-      }
-    });
-  }
+  @override void updateAutoLight() {}
+  @override Future<void> senderLoop() async {}
 }

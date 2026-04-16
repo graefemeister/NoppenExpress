@@ -36,6 +36,7 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
   double _brakeStep2 = 1.0;
   int _rampDelay2 = 250;
   double _reverseLimit = 1.0; 
+  bool _inverted = false;
   bool _autoLight = false;
   Map<String, String> _portSettings = {'A': 'motor', 'B': 'motor', 'C': 'none'};
   int _deltaStep = 10;
@@ -66,10 +67,11 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
       _brakeStep2 = config.brakeStep2;
       _rampDelay2 = config.rampDelay2;
       _reverseLimit = config.reverseLimit;
+      _inverted = config.inverted;
       _autoLight = config.autoLight;
       _portSettings = Map<String, String>.from(config.portSettings);
       _deltaStep = config.deltaStep;
-      
+
     }
   } 
 
@@ -152,9 +154,12 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
       brakeStep2: _brakeStep2,
       rampDelay2: _rampDelay2,
       reverseLimit: _reverseLimit,
+      inverted: _inverted,
       autoLight: _autoLight,
       deltaStep: _deltaStep,
       portSettings: _portSettings,
+      isManualMode: widget.trainToEdit?.config.isManualMode ?? false,
+      useRampingProfile2: widget.trainToEdit?.config.useRampingProfile2 ?? false,
     
     );
 
@@ -535,14 +540,28 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
                       // --- ALLGEMEINE FEINSTEUERUNG ---
                       Text('tuning_general_settings'.tr, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
                       const SizedBox(height: 8),
+
+                      // NEU: Richtung invertieren
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        secondary: const Icon(Icons.swap_horiz, color: Colors.blueGrey),
+                        title: Text('tuning_invert_direction'.tr, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                        subtitle: Text('tuning_invert_direction_help'.tr, style: const TextStyle(fontSize: 12)),
+                        value: _inverted,  
+                        activeColor: Theme.of(context).colorScheme.primary,
+                        onChanged: (v) => setState(() => _inverted = v),
+                      ),
+
                       _buildSlider('tuning_reverse'.tr, _reverseLimit, 0.1, 1.0, (v) => setState(() => _reverseLimit = v), divisions: 18),
                       _buildSlider('tuning_delta_step'.tr, _deltaStep.toDouble(), 1.0, 25.0, (v) => setState(() => _deltaStep = v.toInt()), divisions: 24),
 
                       if (_selectedProtocol != 'lego_duplo') ...[
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
                         SwitchListTile(
                           contentPadding: EdgeInsets.zero,
+                          secondary: const Icon(Icons.lightbulb_outline, color: Colors.blueGrey),
                           title: Text('tuning_auto_light'.tr, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)), 
+                          subtitle: Text('tuning_auto_light_help'.tr, style: const TextStyle(fontSize: 12)),
                           value: _autoLight, 
                           activeColor: Theme.of(context).colorScheme.primary,
                           onChanged: (v) => setState(() => _autoLight = v)

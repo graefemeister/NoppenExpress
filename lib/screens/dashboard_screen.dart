@@ -178,7 +178,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     showAboutDialog(
       context: context,
       applicationName: "NoppenExpress",
-      applicationVersion: "Version 1.9.7",
+      applicationVersion: "Version 1.9.8",
       applicationIcon: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Image.asset(

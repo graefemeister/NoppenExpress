@@ -1,7 +1,7 @@
 name: noppenexpress_ble
 description: "Smarte Steuerung für Klemmbaustein-Loks via BLE & SPP."
 publish_to: 'none'
-version: 1.9.7+9
+version: 1.9.8+10
 
 environment:
   sdk: ^3.11.1
