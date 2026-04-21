@@ -9,25 +9,26 @@ import '../train_manager.dart';
 // --- 1. DIE DATENSTRUKTUR ---
 class TrainConfig {
   final String id;
-  final String name;
   final String mac;
   final String protocol;
-  final String imagePath;
-  final String notes;
-  final Map<int, double> gears;
-  final double rampStep;
-  final double rampStep2;
-  final double brakeStep;
-  final double brakeStep2;
-  final double reverseLimit;
-  final bool inverted;
-  final bool autoLight;
-  final Map<String, String> portSettings;
-  final int deltaStep; 
-  final int rampDelay;
-  final int rampDelay2;
+  String name;
+  String notes;
+  Map<int, double> gears;
+  double rampStep;
+  double rampStep2;
+  double brakeStep;
+  double brakeStep2;
+  double reverseLimit;
+  bool inverted;
+  bool autoLight;
+  Map<String, String> portSettings;
+  int deltaStep; 
+  int rampDelay;
+  int rampDelay2;
   bool isManualMode;
   bool useRampingProfile2;
+  String imagePath;
+
 
   TrainConfig({
     required this.id,
@@ -97,17 +98,21 @@ class TrainConfig {
 
 // --- 2. DIE ZENTRALE BASISKLASSE ---
 abstract class TrainController {
-  final TrainConfig config;
+TrainConfig config;
   bool isRunning = false;
   
-  // Übernimmt den Wert aus der Config beim Start
+  // Diese Getters sind super! Sie greifen immer auf die AKTUELL hinterlegte 
+  // 'config' zu. Wenn wir 'config' tauschen, liefern sie sofort den neuen Wert.
   bool get useRampingProfile2 => config.useRampingProfile2; 
-  
+  bool get inverted => config.inverted;
+  String get name => config.name;
+  String get mac => config.mac;
+  String get imagePath => config.imagePath;
+
   double currentSpeed = 0.0; 
   double targetSpeed = 0.0;  
   Timer? _centralRampingTimer;
 
-  bool get inverted => config.inverted; // Physische Invertierung (Hardware-Einstellung)
   bool lastDirForward = true;
   int lightA = 0; int lightB = 0; int lightC = 0;
 
@@ -115,12 +120,28 @@ abstract class TrainController {
   BluetoothCharacteristic? writeCharacteristic;
   VoidCallback? onStatusChanged;
 
+  // Konstruktor (jetzt ohne final)
   TrainController(this.config);
 
-  String get name => config.name;
-  String get mac => config.mac;
-  String get imagePath => config.imagePath;
-
+  // --- DER ENTSCHEIDENDE NEUE TEIL ---
+  
+  /// Aktualisiert die Konfiguration "fliegend", ohne den Controller 
+  /// oder die Bluetooth-Verbindung zu unterbrechen.
+  void updateConfig(TrainConfig newConfig) {
+    // Falls die ID nicht passt, sollten wir vorsichtig sein
+    if (config.id != newConfig.id) {
+      print("Warnung: Config-Update für eine andere Lok-ID!");
+    }
+    
+    config = newConfig;
+    
+    // Optional: Triggert die UI-Aktualisierung (falls ein Listener dran hängt)
+    if (onStatusChanged != null) {
+      onStatusChanged!();
+    }
+    
+    print("Konfiguration für '$name' im laufenden Betrieb aktualisiert.");
+  }
 
   // Setzt eine feste Fahrstufe (0-4)
   void setGear(int gear, {bool forward = true}) {

@@ -12,7 +12,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   double _currentScale = 1.0;
   int _currentTheme = 0; 
-  bool _wakelock = true;
+  bool _wakelock = false;
   String _currentLang = 'de';
 
   @override
@@ -101,6 +101,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: SwitchListTile(
                 secondary: const Icon(Icons.lightbulb_outline),
                 title: Text('display_always_on'.tr),
+                subtitle: Text('display_always_on_desc'.tr, style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor,),),
                 value: _wakelock,
                 onChanged: (val) {
                   setState(() => _wakelock = val);

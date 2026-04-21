@@ -13,8 +13,14 @@ import '../localization.dart';
 class WorkshopScreen extends StatefulWidget {
   final List<TrainController> existingTrains;
   final TrainController? trainToEdit;
+  final int initialTabIndex;
 
-  const WorkshopScreen({super.key, required this.existingTrains, this.trainToEdit});
+  const WorkshopScreen({
+    super.key, 
+    required this.existingTrains, 
+    this.trainToEdit,
+    this.initialTabIndex = 0,
+  });
 
   @override
   State<WorkshopScreen> createState() => _WorkshopScreenState();
@@ -163,19 +169,32 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
     
     );
 
-    TrainController newTrain;
-    switch (_selectedProtocol) {
-      case 'lego_hub': newTrain = LegoHubController(config); break;
-      case 'pybricks': newTrain = PyBricksController(config); break; 
-      case 'lego_duplo': newTrain = LegoDuploController(config); break; 
-      case 'circuit_cube': newTrain = CircuitCubeController(config); break;
-      case 'mould_king_classic': newTrain = MouldKingClassicController(config); break;
-      case 'mould_king_rwy': newTrain = MouldKingRwyController(config); break;
-      case 'qiqiazi': newTrain = QiqiaziController(config); break;
-      case 'genericquadcontroller': newTrain = GenericQuadController(config); break;
-            default: newTrain = MouldKingController(config);
+    if (widget.trainToEdit != null) {
+      // FALL 1: Wir bearbeiten eine existierende Lok
+      // Wir nutzen die neue Methode in der Basisklasse, um nur die Config zu tauschen.
+      // Der Funk-Loop läuft im Hintergrund einfach weiter!
+      widget.trainToEdit!.updateConfig(config);
+      
+      // Wir geben den AKTUALISIERTEN alten Controller zurück
+      Navigator.pop(context, widget.trainToEdit);
+      
+    } else {
+      // FALL 2: Wir fügen eine GANZ NEUE Lok hinzu
+      // Nur hier brauchen wir den 'switch' und eine neue Instanz
+      TrainController newTrain;
+      switch (_selectedProtocol) {
+        case 'lego_hub': newTrain = LegoHubController(config); break;
+        case 'pybricks': newTrain = PyBricksController(config); break; 
+        case 'lego_duplo': newTrain = LegoDuploController(config); break; 
+        case 'circuit_cube': newTrain = CircuitCubeController(config); break;
+        case 'mould_king_classic': newTrain = MouldKingClassicController(config); break;
+        case 'mould_king_rwy': newTrain = MouldKingRwyController(config); break;
+        case 'qiqiazi': newTrain = QiqiaziController(config); break;
+        case 'genericquadcontroller': newTrain = GenericQuadController(config); break;
+        default: newTrain = MouldKingController(config);
+      }
+      Navigator.pop(context, newTrain);
     }
-    Navigator.pop(context, newTrain);
   }
 
   Future<void> _pickImage() async {
@@ -257,6 +276,7 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
 
     return DefaultTabController(
       length: 3,
+      initialIndex: widget.initialTabIndex,
       child: Builder(
         builder: (tabContext) {
           return Scaffold(

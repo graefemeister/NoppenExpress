@@ -327,6 +327,8 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
       _buildActionChip(label: 'horn'.tr, icon: Icons.volume_up, onPressed: isConnected ? () => duplo.playSound(10) : null),
       _buildActionChip(label: 'fuel'.tr, icon: Icons.ev_station, onPressed: isConnected ? () => duplo.playSound(7) : null),
       _buildActionChip(label: 'fanfare'.tr, icon: Icons.music_note, onPressed: isConnected ? () => duplo.playSound(5) : null),
+      _buildActionChip(label: 'brake'.tr, icon: Icons.stop_circle_outlined, onPressed: isConnected ? () => duplo.playSound(3) : null),
+      _buildActionChip(label: 'departure'.tr, icon: Icons.notifications_active, onPressed: isConnected ? () => duplo.playSound(9) : null),     
     ];
   }
 

@@ -50,8 +50,8 @@ android {
             // --- GEÄNDERT: Hier nutzen wir jetzt "release" statt "debug" ---
             signingConfig = signingConfigs.getByName("release")
             
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
         }
     }
 }
