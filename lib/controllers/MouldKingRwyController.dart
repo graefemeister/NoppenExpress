@@ -33,7 +33,7 @@ class MouldKingRwyController extends TrainController {
     while (isRunning) {
       // --- 1. DIE RAMPE ---
       double target = targetSpeed;
-      double step = (target.abs() > _actualSpeed.abs()) ? config.rampStep : 3.0;
+      double step = (target.abs() > _actualSpeed.abs()) ? config.rampStep.toDouble() : 3.0;       
       
       if (_actualSpeed == 0 && target != 0) _actualSpeed = target > 0 ? 20.0 : -20.0;
       

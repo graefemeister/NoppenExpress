@@ -22,28 +22,55 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
   bool _forwardDirection = true;
   bool _isConnecting = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // Beim allerersten Öffnen des Panels die Richtung aus dem Controller lesen
+    _syncDirection();
+  }
+
+  @override
+  void didUpdateWidget(covariant TrainControlPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Wenn in der TrainBar oben eine andere Lok angetippt wird...
+    if (oldWidget.train != widget.train) {
+      setState(() {
+        // ...überschreiben wir die lokale UI-Richtung mit der der neuen Lok
+        _syncDirection();
+      });
+    }
+  }
+
+  void _syncDirection() {
+    // Greift direkt auf den perfekten State deines TrainControllers zu!
+    _forwardDirection = widget.train.lastDirForward;
+  }
+
   void _updateSpeed(int delta) {
     if (!widget.train.isRunning) return;
 
-    final int minSpeed = (widget.train.config.gears[1] ?? 25).toInt();
-    // Wir rechnen hier nur mit positiven Werten, da die Richtung im Controller per Flag gesetzt wird
+    // NEU: Wir ziehen uns direkt die sauberen Limits aus der Config
+    final int minSpeed = widget.train.config.vMin;
+    final int maxSpeed = widget.train.config.vMax;
+    
     int currentTargetAbs = widget.train.targetSpeed.toInt().abs(); 
     int newTargetAbs;
 
     if (currentTargetAbs == 0 && delta > 0) {
+      // Start aus dem Stand: Springe direkt auf Vmin
       newTargetAbs = minSpeed;
     } else {
       newTargetAbs = currentTargetAbs + delta;
       
-      // Unter Minspeed beim Bremsen -> Stopp
+      // Unter Vmin beim Bremsen -> Direkt auf 0 (Stopp)
       if (newTargetAbs < minSpeed && delta < 0) {
         newTargetAbs = 0;
       }
     }
 
-    newTargetAbs = newTargetAbs.clamp(0, 100);
+    // NEU: clamp() sorgt dafür, dass wir niemals über Vmax hinausschießen
+    newTargetAbs = newTargetAbs.clamp(0, maxSpeed);
     
-    // Sende den positiven Wert + die in der UI gewählte Richtung
     widget.train.setTargetSpeed(newTargetAbs, forward: _forwardDirection);
     widget.onStateChanged();
   }

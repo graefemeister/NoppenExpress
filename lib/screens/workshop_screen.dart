@@ -35,12 +35,14 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
   String _imagePath = "";
   
   double _v1 = 25.0, _v2 = 50.0, _v3 = 75.0, _v4 = 100.0;
-  double _rampStep = 1.0;
-  double _brakeStep = 3.0;
+  int _rampStep = 2;
+  int _brakeStep = 3;
   int _rampDelay = 100;
-  double _rampStep2 = 0.3;
-  double _brakeStep2 = 1.0;
+  int _rampStep2 = 1;
+  int _brakeStep2 = 1;
   int _rampDelay2 = 250;
+  int _vMin = 25;
+  int _vMax = 100;
   double _reverseLimit = 1.0; 
   bool _inverted = false;
   bool _autoLight = false;
@@ -66,12 +68,14 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
       _v2 = config.gears[2] ?? 50.0;
       _v3 = config.gears[3] ?? 75.0;
       _v4 = config.gears[4] ?? 100.0;
-      _rampStep = config.rampStep;
-      _brakeStep = config.brakeStep;
+      _rampStep = config.rampStep.clamp(1, 25);
+      _brakeStep = config.brakeStep.clamp(1, 25);
       _rampDelay = config.rampDelay;
-      _rampStep2 = config.rampStep2;
-      _brakeStep2 = config.brakeStep2;
+      _rampStep2 = config.rampStep2.clamp(1, 25);
+      _brakeStep2 = config.brakeStep2.clamp(1, 25);
       _rampDelay2 = config.rampDelay2;
+      _vMin = config.vMin;
+      _vMax = config.vMax;
       _reverseLimit = config.reverseLimit;
       _inverted = config.inverted;
       _autoLight = config.autoLight;
@@ -158,6 +162,8 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
       rampDelay: _rampDelay,
       rampStep2: _rampStep2,
       brakeStep2: _brakeStep2,
+      vMin: _vMin,
+      vMax: _vMax,
       rampDelay2: _rampDelay2,
       reverseLimit: _reverseLimit,
       inverted: _inverted,
@@ -285,7 +291,7 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
               backgroundColor: Colors.greenAccent.shade700,
               foregroundColor: Colors.white,
               icon: const Icon(Icons.check_circle, size: 28),
-              label: Text(widget.trainToEdit == null ? 'workshop_add'.tr : 'workshop_edit'.tr),
+              label: Text(widget.trainToEdit == null ? 'workshop_add'.tr : 'workshop_edit_save'.tr),
             ),
             body: NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) => [
@@ -451,19 +457,54 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
                       ],
                     ],
                   ),
-                  // --- TAB 3: TUNING ---
+                 // --- TAB 3: TUNING ---
                   ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      if (_selectedProtocol == 'lego_hub') ...[
-                        const Text("PORTS", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                        _buildPortDropdown('A'), _buildPortDropdown('B'),
-                      ],
+                      // ==========================================
+                      // BEREICH 1: AKTIVES TUNING (Wird oft justiert)
+                      // ==========================================
+
+                      // --- VMIN UND VMAX ---
+                      Text('tuning_limits'.tr, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                      
+                      _buildSlider('vMin'.tr, _vMin.toDouble(), 0, 100, (v) {
+                        setState(() {
+                          _vMin = v.toInt();
+                          if (_vMax < _vMin) _vMax = _vMin;
+                          
+                          // Schneepflug nach oben: Vmin schiebt die Fahrstufen an
+                          if (_v1 < _vMin) _v1 = _vMin.toDouble();
+                          if (_v2 < _vMin) _v2 = _vMin.toDouble();
+                          if (_v3 < _vMin) _v3 = _vMin.toDouble();
+                          if (_v4 < _vMin) _v4 = _vMin.toDouble();
+                        });
+                      }, divisions: 20),
+
+                      _buildSlider('vMax'.tr, _vMax.toDouble(), 0, 100, (v) {
+                        setState(() {
+                          _vMax = v.toInt();
+                          if (_vMin > _vMax) _vMin = _vMax;
+                          
+                          // Schneepflug nach unten: Vmax drückt zu hohe Fahrstufen runter
+                          if (_v4 > _vMax) _v4 = _vMax.toDouble();
+                          if (_v3 > _vMax) _v3 = _vMax.toDouble();
+                          if (_v2 > _vMax) _v2 = _vMax.toDouble();
+                          if (_v1 > _vMax) _v1 = _vMax.toDouble();
+                        });
+                      }, divisions: 20),
+                      
+                      const SizedBox(height: 16),
+
+                      // --- FAHRSTUFEN (PRESETS) ---
                       Text('tuning_speed_levels'.tr, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
                       
                       _buildSlider("V1", _v1, 0, 100, (v) {
                         setState(() {
                           _v1 = v;
+                          // Zieht Vmin nach unten
+                          if (_vMin > _v1) _vMin = _v1.toInt(); 
+                          
                           if (_v2 < _v1) _v2 = _v1;
                           if (_v3 < _v1) _v3 = _v1;
                           if (_v4 < _v1) _v4 = _v1;
@@ -474,6 +515,9 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
                         setState(() {
                           _v2 = v;
                           if (_v1 > _v2) _v1 = _v2;
+                          // Kettenreaktion: Falls V1 gedrückt wird, muss Vmin evtl. mit
+                          if (_vMin > _v1) _vMin = _v1.toInt(); 
+                          
                           if (_v3 < _v2) _v3 = _v2;
                           if (_v4 < _v2) _v4 = _v2;
                         });
@@ -484,7 +528,10 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
                           _v3 = v;
                           if (_v1 > _v3) _v1 = _v3;
                           if (_v2 > _v3) _v2 = _v3;
+                          if (_vMin > _v1) _vMin = _v1.toInt(); // Kettenreaktion nach unten
+                          
                           if (_v4 < _v3) _v4 = _v3;
+                          if (_vMax < _v4) _vMax = _v4.toInt(); // Kettenreaktion nach oben
                         });
                       }, divisions: 20),
 
@@ -494,8 +541,12 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
                           if (_v1 > _v4) _v1 = _v4;
                           if (_v2 > _v4) _v2 = _v4;
                           if (_v3 > _v4) _v3 = _v4;
+                          if (_vMin > _v1) _vMin = _v1.toInt(); // Kettenreaktion nach unten
+                          
+                          // Zieht Vmax nach oben
+                          if (_vMax < _v4) _vMax = _v4.toInt(); 
                         });
-                      }, divisions: 20), 
+                      }, divisions: 20),
                       
                       const SizedBox(height: 24),
                       
@@ -518,9 +569,9 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
                               ],
                             ),
                             const SizedBox(height: 12),
-                            _buildSlider('tuning_acceleration'.tr, _rampStep, 0.1, 5.0, (v) => setState(() => _rampStep = v), divisions: 49),
-                            _buildSlider('tuning_brake'.tr, _brakeStep, 0.1, 10.0, (v) => setState(() => _brakeStep = v), divisions: 99),
-                            _buildSlider('tuning_ramp_delay'.tr, _rampDelay.toDouble(), 10.0, 1500.0, (v) => setState(() => _rampDelay = v.toInt()), divisions: 149),
+                            _buildSlider('tuning_acceleration'.tr, _rampStep.toDouble(), 1.0, 10.0, (v) => setState(() => _rampStep = v.toInt()), divisions: 9),
+                            _buildSlider('tuning_brake'.tr, _brakeStep.toDouble(), 1.0, 10.0, (v) => setState(() => _brakeStep = v.toInt()), divisions: 9),
+                            _buildSlider('tuning_ramp_delay'.tr, _rampDelay.toDouble(), 10.0, 1000.0, (v) => setState(() => _rampDelay = v.toInt()), divisions: 99),
                           ],
                         ),
                       ),
@@ -546,22 +597,35 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
                               ],
                             ),
                             const SizedBox(height: 12),
-                            _buildSlider('tuning_acceleration'.tr, _rampStep2, 0.1, 5.0, (v) => setState(() => _rampStep2 = v), divisions: 49),
-                            _buildSlider('tuning_brake'.tr, _brakeStep2, 0.1, 10.0, (v) => setState(() => _brakeStep2 = v), divisions: 99),
-                            _buildSlider('tuning_ramp_delay'.tr, _rampDelay2.toDouble(), 10.0, 1500.0, (v) => setState(() => _rampDelay2 = v.toInt()), divisions: 149),
+                            _buildSlider('tuning_acceleration'.tr, _rampStep2.toDouble(), 1.0, 10.0, (v) => setState(() => _rampStep2 = v.toInt()), divisions: 9),
+                            _buildSlider('tuning_brake'.tr, _brakeStep2.toDouble(), 1.0, 10.0, (v) => setState(() => _brakeStep2 = v.toInt()), divisions: 9),
+                            _buildSlider('tuning_ramp_delay'.tr, _rampDelay2.toDouble(), 10.0, 1000.0, (v) => setState(() => _rampDelay2 = v.toInt()), divisions: 99),
                           ],
                         ),
                       ),
+
+                      const SizedBox(height: 16),
+
+                      // --- WEITERE FEINSTEUERUNG (Delta & Reverse) ---
+                      _buildSlider('tuning_reverse'.tr, _reverseLimit, 0.1, 1.0, (v) => setState(() => _reverseLimit = v), divisions: 18),
+                      _buildSlider('tuning_delta_step'.tr, _deltaStep.toDouble(), 1.0, 25.0, (v) => setState(() => _deltaStep = v.toInt()), divisions: 24),
                       
                       const SizedBox(height: 24),
                       const Divider(),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
 
-                      // --- ALLGEMEINE FEINSTEUERUNG ---
-                      Text('tuning_general_settings'.tr, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                      const SizedBox(height: 8),
+                      // ==========================================
+                      // BEREICH 2: HARDWARE & SETUP (Einmalig)
+                      // ==========================================
+                      Text('hardware_and_setup'.tr, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                      const SizedBox(height: 12),
 
-                      // NEU: Richtung invertieren
+                      if (_selectedProtocol == 'lego_hub') ...[
+                        _buildPortDropdown('A'), 
+                        _buildPortDropdown('B'),
+                        const SizedBox(height: 8),
+                      ],
+
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
                         secondary: const Icon(Icons.swap_horiz, color: Colors.blueGrey),
@@ -572,11 +636,7 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
                         onChanged: (v) => setState(() => _inverted = v),
                       ),
 
-                      _buildSlider('tuning_reverse'.tr, _reverseLimit, 0.1, 1.0, (v) => setState(() => _reverseLimit = v), divisions: 18),
-                      _buildSlider('tuning_delta_step'.tr, _deltaStep.toDouble(), 1.0, 25.0, (v) => setState(() => _deltaStep = v.toInt()), divisions: 24),
-
                       if (_selectedProtocol != 'lego_duplo') ...[
-                        const SizedBox(height: 8),
                         SwitchListTile(
                           contentPadding: EdgeInsets.zero,
                           secondary: const Icon(Icons.lightbulb_outline, color: Colors.blueGrey),

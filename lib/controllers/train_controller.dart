@@ -14,11 +14,13 @@ class TrainConfig {
   String name;
   String notes;
   Map<int, double> gears;
-  double rampStep;
-  double rampStep2;
-  double brakeStep;
-  double brakeStep2;
+  int rampStep;
+  int rampStep2;
+  int brakeStep;
+  int brakeStep2;
   double reverseLimit;
+  int vMin;
+  int vMax;
   bool inverted;
   bool autoLight;
   Map<String, String> portSettings;
@@ -38,10 +40,12 @@ class TrainConfig {
     this.imagePath = "",
     this.notes = "",
     this.gears = const {0: 0, 1: 25, 2: 50, 3: 75, 4: 100},
-    this.rampStep = 1.0,
-    this.rampStep2 = 0.3,
-    this.brakeStep = 3.0,
-    this.brakeStep2 = 1.0,
+    this.rampStep = 2,
+    this.rampStep2 = 1,
+    this.brakeStep = 3,
+    this.brakeStep2 = 1,
+    this.vMin = 25,
+    this.vMax = 100,
     this.reverseLimit = 1.0,
     this.inverted = false,
     this.autoLight = false,
@@ -62,6 +66,8 @@ class TrainConfig {
       'rampStep2': rampStep2, 
       'brakeStep': brakeStep,
       'brakeStep2': brakeStep2,
+      'vMin': vMin,
+      'vMax': vMax,
       'reverseLimit': reverseLimit,
       'inverted': inverted,
       'autoLight': autoLight, 
@@ -79,10 +85,12 @@ class TrainConfig {
       id: map['id'], name: map['name'], mac: map['mac'], protocol: map['protocol'],
       imagePath: map['imagePath'] ?? "", notes: map['notes'] ?? "",
       gears: (map['gears'] as Map).map((k, v) => MapEntry(int.parse(k), v.toDouble())),
-      rampStep: (map['rampStep'] ?? 1.0).toDouble(),
-      rampStep2: (map['rampStep2'] ?? 0.3).toDouble(),
-      brakeStep: (map['brakeStep'] ?? 3.0).toDouble(),
-      brakeStep2: (map['brakeStep2'] ?? 1.0).toDouble(),
+      rampStep: ((map['rampStep'] as num?)?.toInt() ?? 1).clamp(1, 25),
+      rampStep2: ((map['rampStep2'] as num?)?.toInt() ?? 1).clamp(1, 25),
+      brakeStep: ((map['brakeStep'] as num?)?.toInt() ?? 3).clamp(1, 25),
+      brakeStep2: ((map['brakeStep2'] as num?)?.toInt() ?? 1).clamp(1, 25),
+      vMin: map['vMin'] ?? 25,
+      vMax: map['vMax'] ?? 100,
       reverseLimit: (map['reverseLimit'] ?? 1.0).toDouble(),
       inverted: map['inverted'] ?? false,
       autoLight: map['autoLight'] ?? false,
@@ -177,10 +185,18 @@ TrainConfig config;
     if (config.autoLight) updateAutoLight();
 
     // 4. Dynamische Parameter aus dem gewählten Profil laden
-    double activeRampStep = useRampingProfile2 ? config.rampStep2 : config.rampStep;
-    double activeBrakeStep = useRampingProfile2 ? config.brakeStep2 : config.brakeStep;
+    // GEÄNDERT: config liefert jetzt int, wir casten für die interne Rechnung auf double
+    double activeRampStep = (useRampingProfile2 ? config.rampStep2 : config.rampStep).toDouble();
+    double activeBrakeStep = (useRampingProfile2 ? config.brakeStep2 : config.brakeStep).toDouble();
     int activeRampDelay = useRampingProfile2 ? config.rampDelay2 : config.rampDelay;
-    double minSpeed = (config.gears[1] ?? 25.0).toDouble();
+    
+    // NEU: Wir nutzen endlich das echte Vmin statt dem Hack über die Fahrstufe!
+    double minSpeed = config.vMin.toDouble();
+
+    // OPTIONAL ABER EMPFOHLEN: Limitiere das absolute Target auf vMax
+    if (absTarget > config.vMax) {
+      absTarget = config.vMax.toDouble();
+    }
 
     _centralRampingTimer?.cancel();
     
