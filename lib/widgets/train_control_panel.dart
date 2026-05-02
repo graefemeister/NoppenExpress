@@ -111,7 +111,7 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
       case 'pybricks': return 'LEGO PyBrick';
       case 'lego_duplo': return 'LEGO DUPLO';
       case 'circuit_cube': return 'Circuit Cube';
-      case 'qiqiazi': return 'Qiqiai';
+      case 'qiqiazi': return 'Qiqiazi';
       case 'genericquadcontroller': return 'Generic';
       default: return "${'unknown_protocol'.tr} ($protocol)";
     }

@@ -33,6 +33,8 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
   
   String? _selectedProtocol;
   String _imagePath = "";
+
+  int _channel = 1;
   
   double _v1 = 25.0, _v2 = 50.0, _v3 = 75.0, _v4 = 100.0;
   int _rampStep = 2;
@@ -63,6 +65,7 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
       _macController.text = config.mac;
       _notesController.text = config.notes;
       _selectedProtocol = config.protocol;
+      _channel = config.channel ?? 1; 
       _imagePath = config.imagePath;
       _v1 = config.gears[1] ?? 25.0;
       _v2 = config.gears[2] ?? 50.0;
@@ -153,6 +156,7 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
       id: widget.trainToEdit?.config.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       name: _nameController.text,
       mac: _macController.text.trim().toUpperCase(),
+      channel: _selectedProtocol == 'mould_king_classic' ? _channel : null,      
       imagePath: _imagePath,
       protocol: _selectedProtocol!,
       notes: _notesController.text,
@@ -377,6 +381,28 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
                           decoration: InputDecoration(labelText: 'label_mac'.tr, border: const OutlineInputBorder(), isDense: true, hintText: "AC:3E:B1...")
                         ),
                       ] else ...[
+                        // --- NEU: Kanal-Auswahl statt MAC ---
+                      if (_selectedProtocol == 'mould_king_classic')
+                         DropdownButtonFormField<int>(
+                           value: _channel,
+                           decoration: InputDecoration(
+                             labelText: 'channel_select'.tr, // (Ggf. im Localization-File anlegen, z.B. "Kanal auswählen")
+                             border: const OutlineInputBorder(), 
+                             isDense: true
+                           ),
+                           items: const [
+                             DropdownMenuItem(value: 1, child: Text('Kanal 1')),
+                             DropdownMenuItem(value: 2, child: Text('Kanal 2')),
+                             DropdownMenuItem(value: 3, child: Text('Kanal 3')),
+                           ],
+                           onChanged: (newValue) {
+                             setState(() {
+                               _channel = newValue!;
+                             });
+                           },
+                         ),
+                          
+                        const SizedBox(height: 12),
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(color: Colors.blueGrey.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.blueGrey.shade200)),

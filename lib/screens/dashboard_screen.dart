@@ -15,6 +15,7 @@ import 'readme_screen.dart';
 import 'diagnostic_screen.dart';
 import '../widgets/train_control_panel.dart';
 import '../settings_manager.dart';
+import '../controllers/handset_manager.dart';
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback onSettingsChanged;
@@ -37,6 +38,21 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _initApp();
+
+    // --- NEU: Wir hören auf die Fernbedienung ---
+    HandsetManager.instance.onTrainFocused = (TrainController focusedTrain) {
+      if (mounted) {
+        setState(() {
+          _selectedTrain = focusedTrain;
+          
+          // Komfort-Funktion: Wenn der User im ersten Tab (Liste) ist, 
+          // springen wir automatisch zum zweiten Tab (Steuerung) rüber.
+          if (_tabController.index == 0) {
+             _tabController.animateTo(1);
+          }
+        });
+      }
+    };
   }
 
   @override
@@ -67,6 +83,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       _lokListe = loaded;
       _isLoading = false;
     });
+    HandsetManager.instance.updateTrains(_lokListe);
   }
 
   void _attachTrainListener(TrainController train) {
@@ -91,6 +108,10 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             }
           }
         });
+
+        // --- NEU: Trigger für die LEGO-Fernbedienung ---
+        HandsetManager.instance.updateTrains(_lokListe);
+        // ------------------------------------------------
 
         _updateSmartWakelock();
 
@@ -153,6 +174,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         }
       });
       
+      HandsetManager.instance.updateTrains(_lokListe);
       await TrainManager.saveTrains(_lokListe);
     }
   }
@@ -196,6 +218,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       setState(() { 
         _lokListe.addAll(imported); 
       });
+      HandsetManager.instance.updateTrains(_lokListe);
       await TrainManager.saveTrains(_lokListe);
     }
   }
@@ -209,6 +232,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       ]));
     if (confirm == true) {
       setState(() { _lokListe.remove(train); if (_selectedTrain == train) _selectedTrain = null; });
+      HandsetManager.instance.updateTrains(_lokListe);
       await TrainManager.saveTrains(_lokListe);
     }
   }
@@ -246,7 +270,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     showAboutDialog(
       context: context,
       applicationName: "NoppenExpress",
-      applicationVersion: "Version 1.9.10",
+      applicationVersion: "Version 1.10.0",
       applicationIcon: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Image.asset(

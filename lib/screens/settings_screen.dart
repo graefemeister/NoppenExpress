@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../settings_manager.dart';
 import '../localization.dart';
+import '../controllers/handset_manager.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -15,10 +17,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _wakelock = false;
   String _currentLang = 'de';
 
+  bool _isHandsetScanning = false;
+  bool _isHandsetConnected = false;
+
   @override
   void initState() {
     super.initState();
     _loadAllSettings();
+    _isHandsetConnected = HandsetManager.instance.isConnected;
   }
 
   void _loadAllSettings() async {
@@ -69,6 +75,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     DropdownMenuItem(value: 'en', child: Text("English")),
                   ],
                 ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // --- LEGO FERNBEDIENUNG ---
+            Card(
+              child: ListTile(
+                leading: Icon(
+                  Icons.gamepad, 
+                  color: _isHandsetConnected ? Colors.green : Colors.blueGrey,
+                  size: 32,
+                ),
+                // "LEGO Handset (88010)" können wir als Eigenname hart codiert lassen, 
+                // oder du packst es auch ins Dictionary.
+                title: const Text("LEGO Handset (88010)", style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(_isHandsetConnected
+                    ? 'handset_connected'.tr // NEU
+                    : (_isHandsetScanning ? 'handset_scanning'.tr : 'handset_disconnected'.tr)), // NEU
+                trailing: _isHandsetScanning
+                    ? const SizedBox(
+                        width: 24, 
+                        height: 24, 
+                        child: CircularProgressIndicator(strokeWidth: 2)
+                      )
+                    : ElevatedButton(
+                        onPressed: _isHandsetConnected ? _disconnectHandset : _startHandsetScan,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _isHandsetConnected ? Colors.red.shade50 : Colors.greenAccent.shade100,
+                          foregroundColor: _isHandsetConnected ? Colors.red : Colors.green.shade900,
+                          elevation: 0,
+                        ),
+                        child: Text(_isHandsetConnected ? 'btn_disconnect'.tr : 'btn_connect'.tr), // NEU
+                      ),
               ),
             ),
             const SizedBox(height: 12),
@@ -136,4 +175,74 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+
+// ==========================================
+  // HANDSET BLUETOOTH LOGIK
+  // ==========================================
+
+  void _startHandsetScan() async {
+    setState(() => _isHandsetScanning = true);
+
+    try {
+      await FlutterBluePlus.stopScan();
+
+      var subscription = FlutterBluePlus.scanResults.listen((results) async {
+        for (ScanResult r in results) {
+          // LEGO Geräte (Manufacturer Data 919) 
+          if (r.advertisementData.manufacturerData.containsKey(919)) {
+            List<int> data = r.advertisementData.manufacturerData[919]!;
+            
+            // Ist es das Handset (System-ID 0x42)?
+            if (data.length >= 2 && data[1] == 0x42) {
+              FlutterBluePlus.stopScan();
+              await _connectToHandset(r.device);
+              break; 
+            }
+          }
+        }
+      });
+
+      await FlutterBluePlus.startScan(timeout: const Duration(seconds: 15));
+      
+      await Future.delayed(const Duration(seconds: 15));
+      if (mounted && _isHandsetScanning) {
+         setState(() => _isHandsetScanning = false);
+         subscription.cancel();
+      }
+    } catch (e) {
+      debugPrint("Fehler beim Handset-Scan: $e");
+      if (mounted) setState(() => _isHandsetScanning = false);
+    }
+  }
+
+  Future<void> _connectToHandset(BluetoothDevice device) async {
+    try {
+      await device.connect();
+      // Dem Singleton das Device übergeben
+      await HandsetManager.instance.connect(device);
+      
+      if (mounted) {
+        setState(() {
+          _isHandsetConnected = true;
+          _isHandsetScanning = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('handset_paired_success'.tr), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      debugPrint("Fehler bei der Verbindung: $e");
+      if (mounted) setState(() => _isHandsetScanning = false);
+    }
+  }
+
+  void _disconnectHandset() async {
+    await HandsetManager.instance.disconnect();
+    if (mounted) {
+      setState(() {
+        _isHandsetConnected = false;
+      });
+    }
+  }
+
 }

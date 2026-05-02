@@ -70,4 +70,30 @@ class MouldKing40Protocol {
       0, 0, 0, 0, 130
     ]);
   }
+
+  /// Erzeugt das Unified-Fahr-Paket für Kanal 1, 2 und 3 gleichzeitig
+  static Uint8List getUnifiedDrive(List<int> ch1, List<int> ch2, List<int> ch3) {
+    // ch[0] = pA, ch[1] = pB, ch[2] = pC, ch[3] = pD
+    
+    // Kanal 1 berechnen
+    int ch1_ab = (_scale(ch1[0]) << 4) | (_scale(ch1[1]) & 0x0F);
+    int ch1_cd = (_scale(ch1[2]) << 4) | (_scale(ch1[3]) & 0x0F);
+    
+    // Kanal 2 berechnen
+    int ch2_ab = (_scale(ch2[0]) << 4) | (_scale(ch2[1]) & 0x0F);
+    int ch2_cd = (_scale(ch2[2]) << 4) | (_scale(ch2[3]) & 0x0F);
+    
+    // Kanal 3 berechnen
+    int ch3_ab = (_scale(ch3[0]) << 4) | (_scale(ch3[1]) & 0x0F);
+    int ch3_cd = (_scale(ch3[2]) << 4) | (_scale(ch3[3]) & 0x0F);
+
+    // Alles zusammen in die bestehende Verschlüsselung werfen!
+    return _encrypt([
+      125, 196, 189, 
+      ch1_ab, ch1_cd, 
+      ch2_ab, ch2_cd, 
+      ch3_ab, ch3_cd, 
+      130
+    ]);
+  }
 }

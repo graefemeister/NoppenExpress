@@ -11,6 +11,7 @@ class TrainConfig {
   final String id;
   final String mac;
   final String protocol;
+  final int? channel;
   String name;
   String notes;
   Map<int, double> gears;
@@ -37,6 +38,7 @@ class TrainConfig {
     required this.name,
     required this.mac,
     required this.protocol,
+    this.channel = 1,
     this.imagePath = "",
     this.notes = "",
     this.gears = const {0: 0, 1: 25, 2: 50, 3: 75, 4: 100},
@@ -60,6 +62,7 @@ class TrainConfig {
   Map<String, dynamic> toMap() {
     return {
       'id': id, 'name': name, 'mac': mac, 'protocol': protocol,
+      'channel': channel, 
       'imagePath': imagePath, 'notes': notes,
       'gears': gears.map((k, v) => MapEntry(k.toString(), v)),
       'rampStep': rampStep,
@@ -83,6 +86,7 @@ class TrainConfig {
   factory TrainConfig.fromMap(Map<String, dynamic> map) {
     return TrainConfig(
       id: map['id'], name: map['name'], mac: map['mac'], protocol: map['protocol'],
+      channel: map['channel'],
       imagePath: map['imagePath'] ?? "", notes: map['notes'] ?? "",
       gears: (map['gears'] as Map).map((k, v) => MapEntry(int.parse(k), v.toDouble())),
       rampStep: ((map['rampStep'] as num?)?.toInt() ?? 1).clamp(1, 25),
@@ -115,6 +119,7 @@ TrainConfig config;
   bool get inverted => config.inverted;
   String get name => config.name;
   String get mac => config.mac;
+  int get channel => config.channel ?? 1;
   String get imagePath => config.imagePath;
 
   double currentSpeed = 0.0; 
