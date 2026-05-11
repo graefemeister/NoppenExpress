@@ -59,13 +59,14 @@ class LegoHubController extends TrainController {
   }
 
   // --- HILFSMETHODE FÜR DAS LEGO PROTOKOLL ---
-  void _sendPortSpeed(int portIndex, int speed, bool invert) {
+  void _sendPortPower(int portIndex, int power) {
     if (writeCharacteristic == null || !isRunning) return;
-    int finalSpeed = invert ? -speed : speed;
-    finalSpeed = finalSpeed.clamp(-100, 100);
+    
+    // Die Power kommt bereits fertig berechnet (-100 bis +100) aus der Basisklasse
+    int finalPower = power.clamp(-100, 100);
 
     List<int> cmd = [
-      0x08, 0x00, 0x81, portIndex, 0x11, 0x51, 0x00, finalSpeed.toUnsigned(8)
+      0x08, 0x00, 0x81, portIndex, 0x11, 0x51, 0x00, finalPower.toUnsigned(8)
     ];
     writeCharacteristic!.write(cmd, withoutResponse: true);
   }
@@ -73,50 +74,29 @@ class LegoHubController extends TrainController {
   // --- DIE HARDWARE-METHODE DER BASISKLASSE ---
   @override
   void sendHardwareCommand() {
-    // Wird automatisch vom Ramping-Timer aufgerufen, wenn sich currentSpeed ändert
+    // Wird automatisch vom Ramping-Timer oder den Buttons aufgerufen
     if (!isRunning || writeCharacteristic == null) return;
     
-    int speedInt = currentSpeed.round();
-    
-    // An alle Ports senden, die als Motor konfiguriert sind
-    for (var port in ['A', 'B']) {
-      String setting = config.portSettings[port] ?? 'none';
-      if (setting.contains('motor')) {
-        _sendPortSpeed(port == 'A' ? 0 : 1, speedInt, setting == 'motor_inv');
+    // Der LEGO PU Hub hat die physischen Ports A (0x00) und B (0x01)
+    Map<String, int> hubPorts = {'A': 0x00, 'B': 0x01};
+
+    hubPorts.forEach((portName, portIndex) {
+      String role = config.portSettings[portName] ?? 'none';
+      
+      if (role != 'none') {
+        int power = getPowerForRole(role);
+        _sendPortPower(portIndex, power);
+      } else {
+        // Zur Sicherheit Strom wegnehmen, wenn der Port ungenutzt ist
+        _sendPortPower(portIndex, 0);
       }
-    }
+    });
   }
 
   // --- DIE ALTE SENDER-LOOP WIRD ARBEITSLOS ---
   @override
   Future<void> senderLoop() async {
-    // Bleibt leer, da das Lego-Protokoll keinen ständigen Heartbeat benötigt.
-  }
-
-  @override
-  void setLight(String portName, bool on) {
-    if (writeCharacteristic == null || !isRunning) return;
-    
-    if (config.portSettings[portName] == 'light') {
-      int portIndex = (portName == 'A') ? 0 : 1;
-      int brightness = on ? 100 : 0;
-      if (portName == 'A') lightA = brightness;
-      if (portName == 'B') lightB = brightness;
-      
-      _sendPortSpeed(portIndex, brightness, false);
-      onStatusChanged?.call();
-    }
-  }
-
-  @override
-  void updateAutoLight() {
-    if (writeCharacteristic == null || !isRunning || !config.autoLight) return;
-    
-    // Wird von der Basisklasse aufgerufen, wenn die Richtung wechselt
-    config.portSettings.forEach((port, setting) {
-      if (setting == 'light') {
-        _sendPortSpeed(port == 'A' ? 0 : 1, lastDirForward ? 100 : 0, false);
-      }
-    });
+    // Bleibt komplett leer, da das Lego-Protokoll keinen ständigen Heartbeat benötigt.
+    // Alles läuft super effizient On-Demand!
   }
 }

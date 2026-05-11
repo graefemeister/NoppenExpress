@@ -8,6 +8,8 @@ class LegoDuploController extends TrainController {
   final String charUuid = "00001624-1212-efde-1623-785feabcd123";
 
   int _currentColorIndex = 10; // Weiß
+  int _lastSentColor = -1;     // Cache, um BLE-Spam beim Ramping zu verhindern
+  
   bool isBlocked = false;
   StreamSubscription<List<int>>? _subscription;
 
@@ -47,7 +49,8 @@ class LegoDuploController extends TrainController {
         // Aktivierung des Rad-Sensors (Port 18)
         await writeCharacteristic!.write([0x0a, 0x00, 0x41, 0x12, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01], withoutResponse: false);        
         
-        _sendColor(10);
+        // Initiale Farbe senden
+        _sendColor(_currentColorIndex);
         onStatusChanged?.call();
         
         // Startet jetzt nur noch den Blockade-Wächter
@@ -76,9 +79,11 @@ class LegoDuploController extends TrainController {
   void sendHardwareCommand() {
     if (!isRunning || writeCharacteristic == null) return;
     
-    int speedInt = currentSpeed.round().clamp(-100, 100);
+    // 1. Wir holen die Motor-Power über die Rollen-Logik (Port A ist unser logischer Motor)
+    String roleA = config.portSettings['A'] ?? 'motor';
+    int speedInt = getPowerForRole(roleA).clamp(-100, 100);
 
-    // 1. Stoppuhr aufziehen und verwalten
+    // 2. Stoppuhr aufziehen und verwalten
     if (speedInt != 0 && _lastMovementDetected == null) {
       _lastMovementDetected = DateTime.now();
       if (isBlocked) {
@@ -88,16 +93,22 @@ class LegoDuploController extends TrainController {
       _lastMovementDetected = null;
     }
 
-    // 2. Befehl an Port 0 senden
+    // 3. Befehl an Port 0 (Interner Motor) senden
     // Während des Ramping-Prozesses kein Feedback (0x01) fordern, um BLE zu schonen.
     // Erst beim Erreichen des Zielwerts Feedback (0x11) fordern.
-    bool isAtTarget = (speedInt == targetSpeed.round());
+    bool isAtTarget = (currentSpeed.round() == targetSpeed.round());
     int executionMode = isAtTarget ? 0x11 : 0x01;
 
     writeCharacteristic?.write([0x08, 0x00, 0x81, 0x00, executionMode, 0x51, 0x00, speedInt.toUnsigned(8)], withoutResponse: true);
+
+    // 4. Licht-Status prüfen und ggf. umschalten (isLightOn kommt aus der Basisklasse)
+    int targetColor = isLightOn ? _currentColorIndex : 0;
+    if (targetColor != _lastSentColor) {
+      _sendColor(targetColor);
+    }
   }
 
-  // --- DER WATCHDOG (Ehemals senderLoop) ---
+  // --- DER WATCHDOG ---
   @override
   Future<void> senderLoop() async {
     while (isRunning) {
@@ -128,15 +139,8 @@ class LegoDuploController extends TrainController {
   }
 
   void _sendColor(int colorIndex) {
+    _lastSentColor = colorIndex;
     writeCharacteristic?.write([0x08, 0x00, 0x81, 0x11, 0x11, 0x51, 0x00, colorIndex], withoutResponse: true);
-  }
-
-  @override
-  void setLight(String port, bool isOn) {
-    _currentColorIndex = isOn ? 10 : 0;
-    _sendColor(_currentColorIndex);
-    lightA = isOn ? 100 : 0;
-    onStatusChanged?.call();
   }
 
   // Eigene LEGO Methode (Feuert z.B. der ActionChip im ControlPanel ab)
@@ -144,13 +148,12 @@ class LegoDuploController extends TrainController {
     List<int> colors = [10, 9, 7, 6, 3, 2];
     int currentPos = colors.indexOf(_currentColorIndex);
     _currentColorIndex = colors[(currentPos + 1) % colors.length];
+    
+    // Wenn die Farbe manuell durchgeschaltet wird, schalten wir das Licht automatisch "an"
+    isLightOn = true; 
     _sendColor(_currentColorIndex);
-    lightA = 100;
     onStatusChanged?.call();
   }
-
-  @override
-  void updateAutoLight() {}
 
   @override
   Future<void> disconnect() async {

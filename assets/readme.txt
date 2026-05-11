@@ -1,144 +1,182 @@
 ================================================
     _._
   _||_||_    NoppenExpress (BLE)
- |   _   |   Bedienungsanleitung / Manual
- |__| |__|
+ |   _   |
+ |__| |__|   Bedienungsanleitung / Manual
   -O---O-    (c) 2026
              graefemeister@gmail.com
-=====================================================
+================================================
 
------------------------------------------------------
+
+------------------------------------------------
 DEUTSCH
------------------------------------------------------
+------------------------------------------------
 Willkommen bei NoppenExpress!
 Deine neue, smarte Schaltzentrale für Bluetooth-
-gesteuerte Klemmbaustein-Züge.
-Egal ob Rangierfahrt oder High-Speed,
-mit NoppenExpress hast du die volle Kontrolle.
+gesteuerte Klemmbaustein-Züge. 
+Egal ob Rangierfahrt oder High-Speed – 
+du hast die Kontrolle.
 
    _._
  _||_||_
-|       |  DIE WERKSTATT (Loks anlegen)
-|___[]__|  ------------------------------------------
- -O---O-
+|       |
+|___[]__|  DIE WERKSTATT (Neue Lok anlegen)
+ -O---O-   -------------------------------------
 
-Nutze das '+' Symbol, um eine neue Lok anzulegen:
-*** Bluetooth Scan: ***
-Findet die MAC-Adresse deines Hubs (Mould King 6.0, Lego/Duplo oder Circuit Cube) automatisch.
+Nutze das '+' Symbol, um eine neue Lok 
+anzulegen. Dort findest du drei übersichtliche 
+Reiter:
 
-*** Personalisierung: ***
-Gib der Lok einen Namen, lade ein eigenes Foto hoch und hinterlege Wartungs-Notizen.
+1. ALLGEMEIN: 
+   Gib der Lok einen Namen, lade ein Foto 
+   hoch oder hinterlege Notizen.
+   Wähle hier auch das passende Protokoll 
+   (Lego, Mould King, PFxBrick etc.) aus.
 
-*** Tuning: ***
-Passe die 4 Fahrstufen (V1-V4) an, setze ein Limit für Rückwärtsfahrten oder konfiguriere das Ramping für besonders weiches Anfahren und Bremsen. "Automatisches Licht" schaltet die Polung am Licht-Port abhängig der Fahrtrichtung.
+2. BLUETOOTH: 
+   Scanne hier nach deinem Hub, um die 
+   MAC-Adresse automatisch zu finden.
+
+3. FEINABSTIMMUNG: 
+   Passe Fahrstufen und Ramping-Profile an.
+   GANZ UNTEN findest du die 
+   Port-Konfiguration (Motor, Licht, Tür).
+   Neu: Eigene PFxBrick Action-Buttons 
+   (Sounds/Licht) erstellst du ebenfalls hier!
 
 
   +-------+
-  | o o o |  DAS STEUERPULT
-  | - - - |  ----------------------------------------
+  | o o o |  DAS STEUERPULT & UI
+  | - - - |
+  +-------+  -----------------------------------
+
+Wähle eine Lok aus der seitlichen Liste aus.
+
+*** Fahrstufen & Ramping: ***
+Nutze Fahrstufen oder die manuelle Steuerung.
+Wähle außerdem aus zwei Fahrprofilen.
+Die orangefarbene Taste (Halt) bremst deine Lok 
+realistisch bis zum Stillstand ab.
+
+*** UI & Sicherheit: ***
+Schieberegler (Slider) müssen nun gezielt 
+gezogen werden, um versehentliches 
+Beschleunigen beim Antippen zu verhindern.
+Tipp: Die App-Größe passt sich in den 
+Einstellungen nun automatisch ans Display an.
+
+*** Zubehör & Invertieren: ***
+Schalte Lichter oder Türen bequem ein/aus.
+
+*** Nothalt & Sicherheit: ***
+Der rote Button im Pult stoppt die gewählte Lok 
+SOFORT. Der rote Button in der Menüleiste 
+sendet einen Nothalt an ALLE verbundenen Loks.
+
+
   +-------+
+  | o o o |  SPECIAL: MOULD KING (4.0)
+  | - - - |
+  +-------+  -----------------------------------
 
-Wähle eine Lok aus der seitlichen Liste, um sie zu verbinden:
-
-*** Fahrstufen: ***
-Nutze V1-V4 (Vorwärts) und R1-R4 (Rückwärts).
-
-*** Ramping (Halt): ***
-Die orangefarbene Taste bremst deine Lok sanft und realistisch bis zum Stillstand ab.
-
-*** Zubehör: ***
-Schalte die Lichter (Port B/C) bequem ein/aus. Oder löse bei Duploloks Geräusche aus.
-
-*** Invertieren: ***
-Fährt die Lok in die falsche Richtung? 'Richtung Invertieren' löst das Problem sofort.
-
-    ^
-   / \
-  / ! \    SICHERHEIT GEHT VOR
- /_____\   ------------------------------------------
-
-*** Lok-Stopp: ***
-Der rote Button im Steuerpult stoppt die aktuell gewählte Lok SOFORT (ohne Bremsverzögerung).
-*** NOT_AUS: ***
-Der rote Button oben in der Menüleiste sendet einen Nothalt an ALLE aktuell verbundenen Loks.
+Broadcast-Hubs werden synchronisiert:
+1. Alle Hubs einschalten (Blinken).
+2. Bei EINER Lok in der App auf "Verbinden" 
+   drücken.
+3. Alle Hubs blinken nun synchron.
+4. Nun die restlichen Loks in der App verbinden.
+5. KANALWAHL: Grüne Taste am Hub drücken.
+   Blinken: 1x = Kanal 1, 2x = Kanal 2, etc.
 
 
- { * }
-- ( ) -   EINSTELLUNGEN & BACKUP
- { * }    -------------------------------------------
+  *-------*
+  | [ L ] |  LEGO FERNBEDIENUNG
+  | [ R ] |
+  *-------* -----------------------------------
 
-Im Dreipunkte-Menü findest du nützliche Extras:
+Kopple die Remote im Einstellungsmenü:
 
-*** Backup: ***
-Exportiere all deine Loks, um sie auf einem anderen Gerät wieder zu importieren (leider ohne Bilder).
+*** Hosentaschen-Modus (Background): ***
+Aktiviere diesen Modus in den Einstellungen!
+Er hält die Verbindung aufrecht, sodass du 
+mit der Remote auch bei ausgeschaltetem 
+Handy-Display weitersteuern kannst.
 
-*** Darstellung: ***
-Aktiviere den Darkmode oder skaliere die Buttons größer, um sie auf dein Display anzupassen.
+*** Linker Kanal (+/-): ***
+Steuert Fahrtrichtung und Geschwindigkeit pro 
+Klick um den eingestellten 'Stufensprung'.
+Der rote Knopf stoppt den aktuellen Zug sofort.
 
-*** Wakelock: ***
-Verhindert, dass dein Display während der Fahrt unerwünscht ausgeht.
+*** Rechter Kanal (+/-): ***
+Wechselt zwischen den verbundenen Loks.
+Die Status-LED der Remote zeigt pro Zug
+eine andere Farbe (Rot = kein Zug gewählt).
+Der rote Knopf stoppt ALLE verbundenen Züge.
 
 
+================================================
 
-=====================================================
-
------------------------------------------------------
+------------------------------------------------
 ENGLISH
------------------------------------------------------
-Welcome to NoppenExpress!
-Your new, smart command center for Bluetooth-controlled 
-brick trains. Whether shunting or running express, 
-NoppenExpress gives you total control over your layout.
+------------------------------------------------
+Welcome to NoppenExpress! 
+Your smart command center for Bluetooth trains.
 
-    _._
-   _||_||_
-  |       |  THE WORKSHOP (Adding Trains)
-  |___[]__|  --------------------------------------------
-   -O---O-
+   _._
+ _||_||_
+|       |
+|___[]__|  THE WORKSHOP (Adding Trains)
+ -O---O-   -------------------------------------
 
-Tap the '+' icon to add a new train to your roster:
-* Bluetooth Scan: Automatically finds the MAC address of 
-  your hub (Mould King 6.0 or Circuit Cube).
-* Personalization: Give your train a name, upload a 
-  custom photo, and save maintenance notes.
-* Tuning: Customize the speeds for the 4 gears (V1-V4), 
-  set a reverse limit, or configure the ramping steps 
-  for buttery-smooth acceleration.
+Tap the '+' icon to create a new train.
+The setup is divided into three tabs:
+
+1. GENERAL: Set name, photo, and protocol 
+   (Lego, Mould King, PFxBrick, etc.).
+
+2. BLUETOOTH: Scan for your hub to retrieve the 
+   MAC address automatically.
+
+3. TUNING: Adjust gears and ramping. At the 
+   VERY BOTTOM, you can configure the ports 
+   (Motor, Light, or Door).
+   New: Custom PFxBrick action buttons 
+   (sound/light) are also configured here!
 
 
   +-------+
-  | o o o |  THE CONTROL PANEL
-  | - - - |  --------------------------------------------
-  +-------+
+  | o o o |  THE CONTROL PANEL & UI
+  | - - - |
+  +-------+  -----------------------------------
 
-Select a train from the sidebar to connect:
-* Gears: Use buttons V1-V4 (Forward) and R1-R4 (Reverse).
-* Ramping (Halt): The orange button slows your train 
-  down gently and realistically until it stops.
-* Accessories: Toggle the lights (Ports B and C).
-* Invert: Is the train going the wrong way? A quick tap 
-  on 'Invert Direction' solves the issue instantly.
-
-
-     / \
-    / ! \    SAFETY FIRST
-   /_____\   --------------------------------------------
-
-* Train Stop: The red button on the control panel stops 
-  the currently selected train IMMEDIATELY.
-* Global Stop: The large red button in the top menu bar 
-  instantly sends an emergency stop signal to ALL 
-  currently connected trains.
+* Gears: Use buttons for chosing speed-levels 
+  or try the manual-mode.
+* Halt: Slows your train down realistically.
+* UI & Safety: Sliders must be dragged 
+  intentionally to prevent accidental changes.
+  The App now also auto-scales to your screen!
+* Safety: Use the red buttons for immediate 
+  stops (single train or global emergency stop).
 
 
-    { * }
-   - ( ) -   SETTINGS & BACKUP
-    { * }    --------------------------------------------
+  *-------*
+  | [ L ] |  LEGO REMOTE
+  | [ R ] |
+  *-------* -----------------------------------
 
-You will find useful extras in the three-dot menu:
-* Backup: Export all your trains to import them onto 
-  another device (without photo).
-* Appearance: Activate Dark Mode or scale up the UI 
-  buttons for blind operation.
-* Wakelock: Prevents your screen from turning off 
-  unexpectedly while driving.
+Pair the remote in the settings menu:
+
+* Pocket-Mode (Background Service):
+  Enable this in the app settings! It keeps 
+  the connection alive so you can use the 
+  remote even while your screen is off.
+
+* Left Channel (+/-): 
+  Increases or decreases speed by 'step_size'.
+  Red button stops the current train.
+
+* Right Channel (+/-): 
+  Switches between connected trains.
+  Remote LED changes color per train 
+  (RED LED = no train selected).
+  Red button sends a GLOBAL EMERGENCY STOP.

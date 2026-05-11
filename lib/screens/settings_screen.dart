@@ -1,8 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../settings_manager.dart';
 import '../localization.dart';
 import '../controllers/handset_manager.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import '../services/background_service.dart'; 
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,8 +17,10 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   double _currentScale = 1.0;
+  bool _isAutoScale = true;
   int _currentTheme = 0; 
   bool _wakelock = false;
+  bool _isBackgroundModeEnabled = false;
   String _currentLang = 'de';
 
   bool _isHandsetScanning = false;
@@ -32,11 +38,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final theme = await SettingsManager.loadTheme();
     final wake = await SettingsManager.loadWakelock();
     final lang = await SettingsManager.loadLanguage();
+    final bgMode = await SettingsManager.loadBackgroundMode();
     
     setState(() {
       _currentScale = scale;
       _currentTheme = theme;
       _wakelock = wake;
+      _isBackgroundModeEnabled = bgMode;
       _currentLang = lang;
     });
   }
@@ -47,7 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: Text('settings_title'.tr),
+          title: Text('settings'.tr),
         ),
         body: ListView(
           padding: const EdgeInsets.all(16),
@@ -55,7 +63,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // --- SPRACHE ---
             Card(
               child: ListTile(
-                leading: const Icon(Icons.language, color: Colors.blueGrey),
+                leading: Icon(Icons.language, color: Theme.of(context).colorScheme.primary),
                 title: const Text("Sprache / Language", style: TextStyle(fontWeight: FontWeight.bold)),
                 trailing: DropdownButton<String>(
                   value: _currentLang,
@@ -84,29 +92,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: ListTile(
                 leading: Icon(
                   Icons.gamepad, 
-                  color: _isHandsetConnected ? Colors.green : Colors.blueGrey,
+                  color: _isHandsetConnected ? Colors.green : Theme.of(context).colorScheme.primary, // Nur verbunden ist grün
                   size: 32,
                 ),
-                // "LEGO Handset (88010)" können wir als Eigenname hart codiert lassen, 
-                // oder du packst es auch ins Dictionary.
                 title: const Text("LEGO Handset (88010)", style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text(_isHandsetConnected
-                    ? 'handset_connected'.tr // NEU
-                    : (_isHandsetScanning ? 'handset_scanning'.tr : 'handset_disconnected'.tr)), // NEU
+                    ? 'handset_connected'.tr 
+                    : (_isHandsetScanning ? 'handset_scanning'.tr : 'handset_disconnected'.tr)),
                 trailing: _isHandsetScanning
                     ? const SizedBox(
                         width: 24, 
                         height: 24, 
                         child: CircularProgressIndicator(strokeWidth: 2)
                       )
-                    : ElevatedButton(
+                    : OutlinedButton( // Elegante Variante statt buntem Kasten
                         onPressed: _isHandsetConnected ? _disconnectHandset : _startHandsetScan,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _isHandsetConnected ? Colors.red.shade50 : Colors.greenAccent.shade100,
-                          foregroundColor: _isHandsetConnected ? Colors.red : Colors.green.shade900,
-                          elevation: 0,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: _isHandsetConnected ? Colors.red : Theme.of(context).colorScheme.primary,
+                          side: BorderSide(
+                            color: _isHandsetConnected ? Colors.red.withOpacity(0.5) : Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                          ),
                         ),
-                        child: Text(_isHandsetConnected ? 'btn_disconnect'.tr : 'btn_connect'.tr), // NEU
+                        child: Text(_isHandsetConnected ? 'btn_disconnect'.tr : 'btn_connect'.tr),
                       ),
               ),
             ),
@@ -116,20 +123,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Card(
               child: Column(
                 children: [
-                  ListTile(
-                    leading: const Icon(Icons.format_size),
-                    title: Text('ui_scaling'.tr),
-                    subtitle: Text("${(_currentScale * 100).toInt()}%"),
-                  ),
-                  Slider(
-                    value: _currentScale,
-                    min: 0.5,
-                    max: 1.5,
-                    divisions: 10,
-                    onChanged: (val) {
-                      setState(() => _currentScale = val);
-                      SettingsManager.saveScale(val);
+                  SwitchListTile(
+                    secondary: Icon(Icons.autorenew, color: Theme.of(context).colorScheme.primary),
+                    title: Text('ui_auto_scale'.tr, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(
+                      'ui_auto_scale_desc'.tr,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    value: _isAutoScale,
+                    activeColor: Theme.of(context).colorScheme.primary, // Einheitlich!
+                    onChanged: (val) async {
+                      setState(() => _isAutoScale = val);
+                      await SettingsManager.saveAutoScale(val); 
+                      
+                      if (val) {
+                        setState(() => _currentScale = 1.0);
+                        await SettingsManager.saveScale(1.0);
+                      }
                     },
+                  ),
+                  
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+
+                  ListTile(
+                    leading: Icon(Icons.format_size, color: _isAutoScale ? Colors.grey : Theme.of(context).colorScheme.primary),
+                    title: Text(
+                      'ui_scaling_manual'.tr, 
+                      style: TextStyle(color: _isAutoScale ? Colors.grey : null)
+                    ),
+                    subtitle: Text(
+                      _isAutoScale ? "Auto" : "${(_currentScale * 100).toInt()}%",
+                    ),
+                  ),
+                  Opacity(
+                    opacity: _isAutoScale ? 0.3 : 1.0,
+                    child: IgnorePointer(
+                      ignoring: _isAutoScale,
+                      child: Slider(
+                        value: _currentScale,
+                        min: 0.5,
+                        max: 1.5,
+                        divisions: 10,
+                        activeColor: Theme.of(context).colorScheme.primary, // Einheitlich!
+                        onChanged: (val) {
+                          setState(() => _currentScale = val);
+                          SettingsManager.saveScale(val);
+                        },
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -138,10 +179,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // --- WAKELOCK ---
             Card(
               child: SwitchListTile(
-                secondary: const Icon(Icons.lightbulb_outline),
-                title: Text('display_always_on'.tr),
+                secondary: Icon(Icons.lightbulb_outline, color: Theme.of(context).colorScheme.primary),
+                title: Text('display_always_on'.tr, style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text('display_always_on_desc'.tr, style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor,),),
                 value: _wakelock,
+                activeColor: Theme.of(context).colorScheme.primary, // Einheitlich!
                 onChanged: (val) {
                   setState(() => _wakelock = val);
                   SettingsManager.saveWakelock(val);
@@ -150,11 +192,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
 
+            // --- HOSENTASCHEN-MODUS (Hintergrund) ---
+            Card(
+              child: SwitchListTile(
+                secondary: Icon(Icons.phonelink_lock, color: Theme.of(context).colorScheme.primary), 
+                title: Text(
+                  'settings_bg_mode'.tr, 
+                  style: const TextStyle(fontWeight: FontWeight.bold)
+                ),
+                subtitle: Text( 
+                  'settings_bg_mode_desc'.tr,
+                  style: TextStyle(
+                    fontSize: 12, 
+                    color: Theme.of(context).hintColor
+                  ),
+                ),
+                value: _isBackgroundModeEnabled,
+                activeColor: Theme.of(context).colorScheme.primary, // Einheitlich!
+                onChanged: (val) async {
+                  await _handleBackgroundModeChange(val);
+                },
+              ),
+            ),
+
             // --- DESIGN / THEME ---
             Card(
               child: ListTile(
-                leading: const Icon(Icons.brightness_6),
-                title: Text('design_theme'.tr),
+                leading: Icon(Icons.brightness_6, color: Theme.of(context).colorScheme.primary),
+                title: Text('design_theme'.tr, style: const TextStyle(fontWeight: FontWeight.bold)),
                 trailing: DropdownButton<int>(
                   value: _currentTheme,
                   underline: const SizedBox(),
@@ -175,6 +240,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+
+  Future<void> _handleBackgroundModeChange(bool enabled) async {
+  if (enabled) {
+    // 1. Berechtigung für Benachrichtigungen prüfen (Ab Android 13 Pflicht)
+    if (Platform.isAndroid) {
+      final NotificationPermission notificationPermission = 
+          await FlutterForegroundTask.checkNotificationPermission();
+      
+      if (notificationPermission != NotificationPermission.granted) {
+        // Dialog anfordern
+        await FlutterForegroundTask.requestNotificationPermission();
+      }
+      
+      // Falls der Nutzer immer noch abgelehnt hat: Abbruch
+      if (await FlutterForegroundTask.checkNotificationPermission() != NotificationPermission.granted) {
+        if (mounted) {
+          setState(() => _isBackgroundModeEnabled = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Berechtigung für Benachrichtigung erforderlich!")),
+          );
+        }
+        return;
+      }
+    }
+
+    // 2. Den Dienst wirklich starten
+    bool success = await _startBackgroundService();
+    if (success) {
+      await SettingsManager.saveBackgroundMode(true);
+      setState(() => _isBackgroundModeEnabled = true);
+    }
+  } else {
+    // Dienst stoppen
+    await _stopBackgroundService();
+    await SettingsManager.saveBackgroundMode(false);
+    setState(() => _isBackgroundModeEnabled = false);
+  }
+}
+
+Future<bool> _startBackgroundService() async {
+    // In v6.x prüfen wir so, ob der Dienst schon läuft
+    if (await FlutterForegroundTask.isRunningService) {
+      // Wir stoppen ihn kurz, um ihn mit frischen Daten neu zu starten
+      await FlutterForegroundTask.stopService();
+    }
+
+    // FAKT: In v6.5.0 gibt startService direkt einen bool zurück.
+    // Wir brauchen keine 'ServiceRequestResult' Klasse mehr.
+    final bool success = await FlutterForegroundTask.startService(
+      notificationTitle: 'settings_bg_mode'.tr,
+      notificationText: 'settings_bg_mode_desc'.tr,
+      callback: startCallback,
+    );
+    
+    return success;
+  }
+
+Future<void> _stopBackgroundService() async {
+  await FlutterForegroundTask.stopService();
+}
+
 
 // ==========================================
   // HANDSET BLUETOOTH LOGIK
@@ -202,7 +328,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       });
 
-      await FlutterBluePlus.startScan(timeout: const Duration(seconds: 15));
+      await FlutterBluePlus.startScan(timeout: const Duration(seconds: 15)); 
       
       await Future.delayed(const Duration(seconds: 15));
       if (mounted && _isHandsetScanning) {

@@ -12,7 +12,6 @@ import '../localization.dart';
 import 'workshop_screen.dart';
 import 'settings_screen.dart';
 import 'readme_screen.dart';
-import 'diagnostic_screen.dart';
 import '../widgets/train_control_panel.dart';
 import '../settings_manager.dart';
 import '../controllers/handset_manager.dart';
@@ -270,7 +269,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     showAboutDialog(
       context: context,
       applicationName: "NoppenExpress",
-      applicationVersion: "Version 1.10.0",
+      applicationVersion: "Version 1.11.0",
       applicationIcon: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Image.asset(
@@ -571,7 +570,6 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     Navigator.push(context, MaterialPageRoute(builder: (c) => const SettingsScreen())).then((_) => widget.onSettingsChanged());
                     _updateSmartWakelock(); 
                   }
-                  if (val == 'diagnosis') {Navigator.push(context, MaterialPageRoute(builder: (context) => const UniversalDiagnosticScreen(),),);}
                 },
                 itemBuilder: (ctx) => [
                   PopupMenuItem(value: 'export', child: Text('export'.tr)),
@@ -580,7 +578,6 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                   PopupMenuItem(value: 'readme', child: Row(children: [const Icon(Icons.menu_book, size: 20), const SizedBox(width: 8), Text('readme'.tr)])),
                   PopupMenuItem(value: 'settings', child: Row(children: [const Icon(Icons.settings, size: 20), const SizedBox(width: 8), Text('settings'.tr)])),
                   PopupMenuItem(value: 'about', child: Row(children: [const Icon(Icons.info_outline, size: 20), const SizedBox(width: 8), Text('about'.tr)])),                
-                  PopupMenuItem(value: 'diagnosis', child: Row(children: [const Icon(Icons.build, size: 20), const SizedBox(width: 8), Text('diagnosis'.tr)])),
                 ],
               ),
             ],

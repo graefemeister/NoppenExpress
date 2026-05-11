@@ -19,66 +19,43 @@ class TrainControlPanel extends StatefulWidget {
 }
 
 class _TrainControlPanelState extends State<TrainControlPanel> {
-  bool _forwardDirection = true;
   bool _isConnecting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Beim allerersten Öffnen des Panels die Richtung aus dem Controller lesen
-    _syncDirection();
-  }
-
-  @override
-  void didUpdateWidget(covariant TrainControlPanel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Wenn in der TrainBar oben eine andere Lok angetippt wird...
-    if (oldWidget.train != widget.train) {
-      setState(() {
-        // ...überschreiben wir die lokale UI-Richtung mit der der neuen Lok
-        _syncDirection();
-      });
-    }
-  }
-
-  void _syncDirection() {
-    // Greift direkt auf den perfekten State deines TrainControllers zu!
-    _forwardDirection = widget.train.lastDirForward;
-  }
 
   void _updateSpeed(int delta) {
     if (!widget.train.isRunning) return;
 
-    // NEU: Wir ziehen uns direkt die sauberen Limits aus der Config
     final int minSpeed = widget.train.config.vMin;
     final int maxSpeed = widget.train.config.vMax;
     
+    // Wir bleiben konsequent bei int
     int currentTargetAbs = widget.train.targetSpeed.toInt().abs(); 
     int newTargetAbs;
 
     if (currentTargetAbs == 0 && delta > 0) {
-      // Start aus dem Stand: Springe direkt auf Vmin
-      newTargetAbs = minSpeed;
+      // Falls vMin 0 ist, nimm den ersten Delta-Schritt
+      newTargetAbs = (minSpeed > 0) ? minSpeed : delta;
     } else {
       newTargetAbs = currentTargetAbs + delta;
       
-      // Unter Vmin beim Bremsen -> Direkt auf 0 (Stopp)
-      if (newTargetAbs < minSpeed && delta < 0) {
+      // Sanftes Einrasten auf 0 beim Runterregeln
+      if (minSpeed > 0 && newTargetAbs < minSpeed && delta < 0) {
         newTargetAbs = 0;
       }
     }
 
-    // NEU: clamp() sorgt dafür, dass wir niemals über Vmax hinausschießen
+    // Clamp sorgt dafür, dass wir innerhalb von 0 bis vMax bleiben
     newTargetAbs = newTargetAbs.clamp(0, maxSpeed);
     
-    widget.train.setTargetSpeed(newTargetAbs, forward: _forwardDirection);
+    // Hier jetzt ohne .toDouble(), da setTargetSpeed ein int will
+    widget.train.setTargetSpeed(newTargetAbs, forward: widget.train.lastDirForward);    
+    // UI-Refresh erzwingen
     widget.onStateChanged();
   }
 
   void _setAbsoluteGear(int gearIndex) {
     if (!widget.train.isRunning) return;
     int speedValue = (widget.train.config.gears[gearIndex] ?? 0).toInt();
-    widget.train.setTargetSpeed(speedValue, forward: _forwardDirection);
+    widget.train.setTargetSpeed(speedValue, forward: widget.train.lastDirForward);
     widget.onStateChanged();
   }
 
@@ -101,16 +78,16 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
     }
   }
 
-  // Aus dem build-Block ausgelagert, um unnötige Neudefinitionen zu vermeiden
   String _getProtocolDisplayName(String protocol) {
     switch (protocol) {
       case 'mould_king': return 'Mould King (BLE)';
       case 'mould_king_classic': return 'Mould King (Broadcast)';
       case 'mould_king_rwy': return 'Mould King (RWY)';
       case 'lego_hub': return 'LEGO Powered Up';
-      case 'pybricks': return 'LEGO PyBrick';
+      case 'buwizz2': return 'BuWizz 2.0';
       case 'lego_duplo': return 'LEGO DUPLO';
       case 'circuit_cube': return 'Circuit Cube';
+      case 'pfxbrick': return 'PFxBrick';
       case 'qiqiazi': return 'Qiqiazi';
       case 'genericquadcontroller': return 'Generic';
       default: return "${'unknown_protocol'.tr} ($protocol)";
@@ -129,8 +106,6 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-          // ZEILE 1: Name/Protokoll oben, Bild/Button darunter
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Column(
@@ -196,7 +171,6 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
 
           const SizedBox(height: 15),
 
-          // ZEILE 2: Zwei kompakte Umschalter (Stufen/Manuell & Profil 1/2)
           Row(
             children: [
               Expanded(
@@ -226,12 +200,9 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
           ),
           const SizedBox(height: 20),
 
-          // ZEILE 3: [<] [>] [IST/SOLL] [NOTHALT/STOP]
           Row(
             children: [
-              _dirBtn(Icons.arrow_back_ios_new, false),
-              const SizedBox(width: 4),
-              _dirBtn(Icons.arrow_forward_ios, true),
+              _directionToggle(),
               
               const SizedBox(width: 12),
               
@@ -267,13 +238,12 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
           ),
           const SizedBox(height: 16),
 
-          // ZEILE 4: [Halt (Orange)] [1/--] [2/-] [3/+] [4/++]
           Row(
             children: [
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: isConnected ? () {
-                    widget.train.setTargetSpeed(0, forward: _forwardDirection);
+                    widget.train.setTargetSpeed(0, forward: widget.train.lastDirForward);
                     widget.onStateChanged();
                   } : null,
                   icon: const Icon(Icons.pause_circle_filled, size: 24),
@@ -297,19 +267,19 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
           const SizedBox(height: 32),
           const Divider(),
 
-          // ZUBEHÖR & ACCESSORIES
           Text('accessories'.tr, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8.0,
             runSpacing: 8.0,
             children: [
-              if (config.protocol == 'lego_duplo') ..._buildDuploControls(isConnected),
-              if (config.protocol != 'lego_duplo') ..._buildStandardControls(isConnected, isLego, config.portSettings),
+              if (config.protocol == 'lego_duplo') ..._buildDuploControls(isConnected)
+              else if (config.protocol == 'pfxbrick') ..._buildDynamicPFxControls(isConnected)
+              
+              else ..._buildStandardControls(isConnected, config.portSettings),
             ],
           ),
 
-          // NOTIZEN
           if (config.notes.isNotEmpty) ...[
             const SizedBox(height: 32),
             Container(
@@ -335,15 +305,16 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
     );
   }
 
-  // --- ZUBEHÖR HILFSMETHODEN ---
-
   List<Widget> _buildDuploControls(bool isConnected) {
     final duplo = widget.train as LegoDuploController;
     return [
       FilterChip(
         label: Text('light'.tr),
-        selected: widget.train.lightA > 0,
-        onSelected: isConnected ? (val) => _handleLight('A', val) : null,
+        selected: widget.train.isLightOn, // GEFIXT: Neue Status-Variable
+        onSelected: isConnected ? (_) { 
+           widget.train.toggleLight(); 
+           setState(() {}); 
+        } : null, 
       ),
       _buildActionChip(
         label: 'color'.tr,
@@ -359,57 +330,79 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
     ];
   }
 
-  List<Widget> _buildStandardControls(bool isConnected, bool isLego, Map<String, dynamic> portSettings) {
-    final bool showLightB = !isLego || (isLego && portSettings['B'] == 'light');
-    final bool isLightBOn = widget.train.lightB > 0;
-    final bool isLightCOn = widget.train.lightC > 0;
+  List<Widget> _buildDynamicPFxControls(bool isConnected) {
+    if (widget.train is! PFxBrickController) return [];
+    
+    final pfx = widget.train as PFxBrickController;
+    // Wir greifen auf die Liste in der Config zu
+    final actions = pfx.config.pfxActions; 
 
-    return [
-      if (showLightB)
-        FilterChip(
-          showCheckmark: false,
-          selected: isLightBOn,
-          selectedColor: Colors.yellow.shade600,
-          avatar: Icon(
-            isLightBOn ? Icons.lightbulb : Icons.lightbulb_outline,
-            color: isLightBOn ? Colors.black87 : Colors.blueGrey,
-            size: 18,
-          ),
-          label: Text(
-            'light_b'.tr,
-            style: TextStyle(
-              color: isLightBOn ? Colors.black87 : null,
-              fontWeight: isLightBOn ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-          onSelected: isConnected ? (val) => _handleLight('B', val) : null,
-        ),
-      if (!isLego)
-        FilterChip(
-          showCheckmark: false,
-          selected: isLightCOn,
-          selectedColor: Colors.yellow.shade600,
-          avatar: Icon(
-            isLightCOn ? Icons.lightbulb : Icons.lightbulb_outline,
-            color: isLightCOn ? Colors.black87 : Colors.blueGrey,
-            size: 18,
-          ),
-          label: Text(
-            'light_c'.tr,
-            style: TextStyle(
-              // Fehler behoben: Hier stand vorher widget.train.lightB
-              color: isLightCOn ? Colors.black87 : null,
-              fontWeight: isLightCOn ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-          onSelected: isConnected ? (val) => _handleLight('C', val) : null,
-        ),
-    ];
+    if (actions.isEmpty) return [];
+
+    return actions.map((action) {
+      return ActionChip(
+        label: Text(action.label),
+        backgroundColor: Colors.blueGrey.shade800,
+        labelStyle: const TextStyle(color: Colors.white),
+        onPressed: isConnected 
+            ? () => pfx.triggerRemoteAction(action.actionId, channel: action.channel) 
+            : null,
+      );
+    }).toList();
   }
 
-  void _handleLight(String port, bool value) {
-    widget.train.setLight(port, value);
-    setState(() {});
+  // GEFIXT: Komplett dynamische Zubehör-Buttons anhand der Port-Einstellungen
+  List<Widget> _buildStandardControls(bool isConnected, Map<String, String> portSettings) {
+    final bool hasLightPort = portSettings.values.any((role) => role.contains('light'));
+    final bool hasDoorPort = portSettings.values.any((role) => role == 'door');
+
+    return [
+      if (hasLightPort)
+        FilterChip(
+          showCheckmark: false,
+          selected: widget.train.isLightOn,
+          selectedColor: Colors.yellow.shade600,
+          avatar: Icon(
+            widget.train.isLightOn ? Icons.lightbulb : Icons.lightbulb_outline,
+            color: widget.train.isLightOn ? Colors.black87 : Colors.blueGrey,
+            size: 18,
+          ),
+          label: Text(
+            'light'.tr, 
+            style: TextStyle(
+              color: widget.train.isLightOn ? Colors.black87 : null,
+              fontWeight: widget.train.isLightOn ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+          onSelected: isConnected ? (_) {
+            widget.train.toggleLight();
+            setState(() {});
+          } : null,
+        ),
+        
+      if (hasDoorPort)
+        FilterChip(
+          showCheckmark: false,
+          selected: widget.train.isDoorActive,
+          selectedColor: Colors.teal.shade300,
+          avatar: Icon(
+            widget.train.isDoorActive ? Icons.door_front_door : Icons.door_front_door_outlined,
+            color: widget.train.isDoorActive ? Colors.white : Colors.blueGrey,
+            size: 18,
+          ),
+          label: Text(
+            'door'.tr, // (Ggf. noch in die localizations eintragen)
+            style: TextStyle(
+              color: widget.train.isDoorActive ? Colors.white : null,
+              fontWeight: widget.train.isDoorActive ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+          onSelected: isConnected ? (_) {
+            widget.train.toggleDoor();
+            setState(() {});
+          } : null,
+        ),
+    ];
   }
 
   Widget _buildActionChip({required String label, required IconData icon, VoidCallback? onPressed, Color? iconColor}) {
@@ -419,8 +412,6 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
       onPressed: onPressed,
     );
   }
-
-  // --- UI HILFSWIDGETS ---
 
   Widget _modeToggle({required String label, required bool isActive, required Color activeColor, required VoidCallback onTap}) {
     return InkWell(
@@ -438,48 +429,91 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
     );
   }
 
-  Widget _dirBtn(IconData icon, bool forward) {
-    final bool isMoving = widget.train.currentSpeed.abs() > 0;
-    final bool isSelected = _forwardDirection == forward;
+Widget _directionToggle() {
+  final bool isMoving = widget.train.currentSpeed.abs() > 0;
+  final colorScheme = Theme.of(context).colorScheme;
+  
+  // Die einzige Wahrheit kommt jetzt direkt aus dem Zug
+  final bool isForward = widget.train.lastDirForward;
 
-    return InkWell(
-      onTap: isMoving ? null : () {
-        setState(() => _forwardDirection = forward);
-        widget.onStateChanged();
-      },
-      child: Opacity(
-        opacity: isMoving && !isSelected ? 0.2 : 1.0,
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isSelected 
-                ? Theme.of(context).colorScheme.primary.withOpacity(0.2) 
-                : Colors.transparent,
-            border: Border.all(
-              color: isSelected 
-                  ? Theme.of(context).colorScheme.primary 
-                  : Colors.grey.withOpacity(isMoving ? 0.2 : 1.0),
-            ),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            icon, 
-            color: isSelected 
-                ? Theme.of(context).colorScheme.primary 
-                : Colors.grey.withOpacity(isMoving ? 0.3 : 1.0),
-            size: 18
-          ),
+  return GestureDetector(
+    onTap: isMoving ? null : () {
+      // 1. Richtung im Modell umkehren
+      widget.train.lastDirForward = !isForward;
+      
+      // 2. UI zwingen, sich neu zu zeichnen (Toggle springt um)
+      widget.onStateChanged();
+    },
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+      decoration: BoxDecoration(
+        color: isMoving ? Colors.transparent : colorScheme.primary.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isMoving ? Colors.grey.withOpacity(0.2) : colorScheme.primary.withOpacity(0.4),
+          width: 1,
         ),
       ),
-    );
-  }
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildAnimatedArrow(
+            icon: Icons.keyboard_arrow_up_rounded,
+            isActive: isForward, // Hier isForward nutzen
+            isMoving: isMoving,
+            colorScheme: colorScheme,
+          ),
+          _buildAnimatedArrow(
+            icon: Icons.keyboard_arrow_down_rounded,
+            isActive: !isForward, // Hier !isForward nutzen
+            isMoving: isMoving,
+            colorScheme: colorScheme,
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
-  Widget _multiBtn(String label, int value, bool isManual) {
+Widget _buildAnimatedArrow({
+  required IconData icon,
+  required bool isActive,
+  required bool isMoving,
+  required ColorScheme colorScheme,
+}) {
+  return AnimatedScale(
+    // Etwas moderatere Skalierung, um Platz zu sparen
+    scale: isActive ? 1.2 : 0.7,
+    duration: const Duration(milliseconds: 300),
+    curve: Curves.easeOutBack,
+    child: AnimatedOpacity(
+      opacity: isActive ? (isMoving ? 0.6 : 1.0) : 0.15,
+      duration: const Duration(milliseconds: 300),
+      child: Icon(
+        icon,
+        size: 26, // Von 32 auf 26 reduziert
+        color: isActive ? colorScheme.primary : Colors.grey,
+      ),
+    ),
+  );
+}
+
+ Widget _multiBtn(String label, int value, bool isManual) {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 2.0),
         child: ElevatedButton(
-          onPressed: widget.train.isRunning ? () => isManual ? _updateSpeed(value) : _setAbsoluteGear(value) : null,
+          onPressed: widget.train.isRunning ? () {
+            // 1. Die Logik ausführen
+            if (isManual) {
+              _updateSpeed(value);
+            } else {
+              _setAbsoluteGear(value);
+            }
+            // 2. GANZ WICHTIG: Die UI informieren, dass sich SOLL/IST geändert haben
+            widget.onStateChanged(); 
+          } : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blueGrey.shade700,
             foregroundColor: Colors.white,

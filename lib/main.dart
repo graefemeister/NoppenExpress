@@ -10,6 +10,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'settings_manager.dart';
 import 'localization.dart';
 import 'screens/dashboard_screen.dart';
+import 'services/background_service.dart'; 
 
 void main() async {
   LicenseRegistry.addLicense(() async* {
@@ -29,6 +30,8 @@ void main() async {
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);
+
+  BackgroundService.init();
 
   runApp(const NoppenExpressApp());
 

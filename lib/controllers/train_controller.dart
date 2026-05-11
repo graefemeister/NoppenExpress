@@ -5,13 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; 
 import '../mould_king_40_protocol.dart'; 
 import '../train_manager.dart';
+import '../models/pfx_action.dart';
 
 // --- 1. DIE DATENSTRUKTUR ---
 class TrainConfig {
   final String id;
-  final String mac;
-  final String protocol;
-  final int? channel;
+  String mac;
+  String protocol;
+  int? channel;
   String name;
   String notes;
   Map<int, double> gears;
@@ -19,11 +20,8 @@ class TrainConfig {
   int rampStep2;
   int brakeStep;
   int brakeStep2;
-  double reverseLimit;
   int vMin;
   int vMax;
-  bool inverted;
-  bool autoLight;
   Map<String, String> portSettings;
   int deltaStep; 
   int rampDelay;
@@ -31,7 +29,7 @@ class TrainConfig {
   bool isManualMode;
   bool useRampingProfile2;
   String imagePath;
-
+  List<PFxAction> pfxActions = [];
 
   TrainConfig({
     required this.id,
@@ -48,16 +46,14 @@ class TrainConfig {
     this.brakeStep2 = 1,
     this.vMin = 25,
     this.vMax = 100,
-    this.reverseLimit = 1.0,
-    this.inverted = false,
-    this.autoLight = false,
-    this.portSettings = const {'A': 'motor', 'B': 'motor'},
+    this.portSettings = const {'A': 'motor', 'B': 'light_dir'}, 
     this.deltaStep = 10, 
     this.rampDelay = 100,
     this.rampDelay2 = 250,
     this.isManualMode = false,
     this.useRampingProfile2 = false,
-  });
+    List<PFxAction>? pfxActions, // Optional im Konstruktor
+  }) : pfxActions = pfxActions ?? []; // Wenn nichts übergeben wird, ist sie leer
 
   Map<String, dynamic> toMap() {
     return {
@@ -65,25 +61,39 @@ class TrainConfig {
       'channel': channel, 
       'imagePath': imagePath, 'notes': notes,
       'gears': gears.map((k, v) => MapEntry(k.toString(), v)),
-      'rampStep': rampStep,
-      'rampStep2': rampStep2, 
-      'brakeStep': brakeStep,
-      'brakeStep2': brakeStep2,
-      'vMin': vMin,
-      'vMax': vMax,
-      'reverseLimit': reverseLimit,
-      'inverted': inverted,
-      'autoLight': autoLight, 
+      'rampStep': rampStep, 'rampStep2': rampStep2, 
+      'brakeStep': brakeStep, 'brakeStep2': brakeStep2,
+      'vMin': vMin, 'vMax': vMax,
       'portSettings': portSettings,
       'deltaStep': deltaStep, 
-      'rampDelay': rampDelay,
-      'rampDelay2': rampDelay2,
+      'rampDelay': rampDelay, 'rampDelay2': rampDelay2,
       'useRampingProfile2': useRampingProfile2,
       'isManualMode': isManualMode, 
+      'pfxActions': pfxActions.map((action) => action.toJson()).toList(),
     };
   }
 
   factory TrainConfig.fromMap(Map<String, dynamic> map) {
+    // Lade alte Port-Settings oder setze Standard
+    Map<String, String> loadedPorts = Map<String, String>.from(
+        map['portSettings'] ?? {'A': 'motor', 'B': 'light_dir'});
+
+    // MIGRATION: Falls die alte Config "inverted: true" hatte
+    bool oldInverted = map['inverted'] ?? false;
+    if (oldInverted) {
+      loadedPorts.forEach((key, value) {
+        if (value == 'motor') loadedPorts[key] = 'motor_inv';
+      });
+    }
+
+    // PFx Aktionen aus der Map wiederherstellen
+    List<PFxAction> loadedActions = [];
+    if (map['pfxActions'] != null) {
+      loadedActions = (map['pfxActions'] as List)
+          .map((item) => PFxAction.fromJson(Map<String, dynamic>.from(item)))
+          .toList();
+    }
+
     return TrainConfig(
       id: map['id'], name: map['name'], mac: map['mac'], protocol: map['protocol'],
       channel: map['channel'],
@@ -95,28 +105,23 @@ class TrainConfig {
       brakeStep2: ((map['brakeStep2'] as num?)?.toInt() ?? 1).clamp(1, 25),
       vMin: map['vMin'] ?? 25,
       vMax: map['vMax'] ?? 100,
-      reverseLimit: (map['reverseLimit'] ?? 1.0).toDouble(),
-      inverted: map['inverted'] ?? false,
-      autoLight: map['autoLight'] ?? false,
-      portSettings: Map<String, String>.from(map['portSettings'] ?? {'A': 'motor', 'B': 'motor'}),
+      portSettings: loadedPorts, // Migrierte Ports übergeben
       deltaStep: map['deltaStep'] ?? 10, 
       rampDelay: map['rampDelay'] ?? 100,
       rampDelay2: map['rampDelay2'] ?? 250,
       useRampingProfile2: map['useRampingProfile2'] ?? false,
       isManualMode: map['isManualMode'] ?? false,
+      pfxActions: loadedActions, // Hier geben wir die geladenen Buttons an den Konstruktor
     );
   }
 }
 
 // --- 2. DIE ZENTRALE BASISKLASSE ---
 abstract class TrainController {
-TrainConfig config;
+  TrainConfig config;
   bool isRunning = false;
   
-  // Diese Getters sind super! Sie greifen immer auf die AKTUELL hinterlegte 
-  // 'config' zu. Wenn wir 'config' tauschen, liefern sie sofort den neuen Wert.
   bool get useRampingProfile2 => config.useRampingProfile2; 
-  bool get inverted => config.inverted;
   String get name => config.name;
   String get mac => config.mac;
   int get channel => config.channel ?? 1;
@@ -127,36 +132,60 @@ TrainConfig config;
   Timer? _centralRampingTimer;
 
   bool lastDirForward = true;
-  int lightA = 0; int lightB = 0; int lightC = 0;
+
+  // NEUE STATE VARIABLEN FÜR FREIE PORTS
+  bool isLightOn = false;
+  bool isDoorActive = false;
+  bool nextDoorDirectionForward = true;
 
   BluetoothDevice? device;
   BluetoothCharacteristic? writeCharacteristic;
   VoidCallback? onStatusChanged;
 
-  // Konstruktor (jetzt ohne final)
   TrainController(this.config);
 
-  // --- DER ENTSCHEIDENDE NEUE TEIL ---
-  
-  /// Aktualisiert die Konfiguration "fliegend", ohne den Controller 
-  /// oder die Bluetooth-Verbindung zu unterbrechen.
   void updateConfig(TrainConfig newConfig) {
-    // Falls die ID nicht passt, sollten wir vorsichtig sein
     if (config.id != newConfig.id) {
       print("Warnung: Config-Update für eine andere Lok-ID!");
     }
-    
     config = newConfig;
-    
-    // Optional: Triggert die UI-Aktualisierung (falls ein Listener dran hängt)
-    if (onStatusChanged != null) {
-      onStatusChanged!();
-    }
-    
-    print("Konfiguration für '$name' im laufenden Betrieb aktualisiert.");
+    if (onStatusChanged != null) onStatusChanged!();
   }
 
-  // Setzt eine feste Fahrstufe (0-4)
+  // HILFSFUNKTION FÜR HARDWARE-CONTROLLER
+  int getPowerForRole(String role) {
+    switch (role) {
+      case 'motor': 
+        return currentSpeed.round();
+      case 'motor_inv': 
+        return -currentSpeed.round();
+      case 'light_static': 
+        return isLightOn ? 100 : 0;
+      case 'light_dir': 
+        return isLightOn ? (lastDirForward ? 100 : -100) : 0;
+      case 'door': 
+        return isDoorActive ? (nextDoorDirectionForward ? 100 : -100) : 0;
+      case 'none':
+      default: 
+        return 0;
+    }
+  }
+
+  void toggleLight() {
+    isLightOn = !isLightOn;
+    sendHardwareCommand();
+    if (onStatusChanged != null) onStatusChanged!();
+  }
+
+  void toggleDoor() {
+    isDoorActive = !isDoorActive;
+    if (!isDoorActive) {
+      nextDoorDirectionForward = !nextDoorDirectionForward;
+    }
+    sendHardwareCommand();
+    if (onStatusChanged != null) onStatusChanged!();
+  }
+
   void setGear(int gear, {bool forward = true}) {
     if (config.gears.containsKey(gear)) {
       double speed = config.gears[gear]!;
@@ -164,41 +193,25 @@ TrainConfig config;
     }
   }
 
-  // Manuelle Steuerung (+/- Buttons)
   void setTargetSpeed(int targetPercent, {bool forward = true}) {
-    // Wir übergeben den positiven Prozentwert und die Richtung
     _setTargetAndRamp(targetPercent.toDouble(), forward: forward, isManual: true);
   }
 
-  // --- DAS ZENTRALE GEHIRN ---
+  // DAS ZENTRALE GEHIRN (RAMPING)
   void _setTargetAndRamp(double speedInput, {required bool forward, required bool isManual}) {
     if (!isRunning) return;
 
-    // 1. Richtung merken für Hilfsfunktionen (z.B. Licht)
     if (speedInput > 0) lastDirForward = forward;
     
-    // 2. Limit für Rückwärtsfahrt berechnen
     double absTarget = speedInput.abs(); 
-    if (!forward && config.reverseLimit < 1.0) {
-      absTarget *= config.reverseLimit;
-    }
-
-    // 3. Logischer Zielwert für die Mathematik (-100.0 bis +100.0)
-    // Dies ist die Basis für alle Berechnungen im Timer.
     targetSpeed = forward ? absTarget : -absTarget;
 
-    if (config.autoLight) updateAutoLight();
-
-    // 4. Dynamische Parameter aus dem gewählten Profil laden
-    // GEÄNDERT: config liefert jetzt int, wir casten für die interne Rechnung auf double
     double activeRampStep = (useRampingProfile2 ? config.rampStep2 : config.rampStep).toDouble();
     double activeBrakeStep = (useRampingProfile2 ? config.brakeStep2 : config.brakeStep).toDouble();
     int activeRampDelay = useRampingProfile2 ? config.rampDelay2 : config.rampDelay;
     
-    // NEU: Wir nutzen endlich das echte Vmin statt dem Hack über die Fahrstufe!
     double minSpeed = config.vMin.toDouble();
 
-    // OPTIONAL ABER EMPFOHLEN: Limitiere das absolute Target auf vMax
     if (absTarget > config.vMax) {
       absTarget = config.vMax.toDouble();
     }
@@ -211,34 +224,30 @@ TrainConfig config;
         return;
       }
 
-      // Beschleunigen wir (weg von 0) oder bremsen wir (hin zu 0)?
       bool isAccelerating = targetSpeed.abs() > currentSpeed.abs();
       double step = isAccelerating ? activeRampStep : activeBrakeStep;
 
-      // "Einrast"-Punkt: Alles zwischen 1 und minSpeed wird als minSpeed behandelt
       double effectiveTarget = targetSpeed;
       if (targetSpeed.abs() > 0 && targetSpeed.abs() < minSpeed) {
         effectiveTarget = (targetSpeed > 0) ? minSpeed : -minSpeed;
       }
 
-      // --- RAMPING LOGIK ---
       if (currentSpeed < effectiveTarget) {
-        // Wir müssen den Wert erhöhen (Richtung Plus)
         if (currentSpeed == 0 && effectiveTarget > 0) {
-          currentSpeed = minSpeed; // Sofort-Start auf minSpeed
+          // Falls vMin (minSpeed) 0 ist, nehmen wir direkt den ersten 'step'
+          currentSpeed = (minSpeed > 0) ? minSpeed : step; 
         } else {
           currentSpeed = (currentSpeed + step > effectiveTarget) ? effectiveTarget : currentSpeed + step;
         }
       } else if (currentSpeed > effectiveTarget) {
-        // Wir müssen den Wert verringern (Richtung Minus)
         if (currentSpeed == 0 && effectiveTarget < 0) {
-          currentSpeed = -minSpeed; // Sofort-Start rückwärts auf minSpeed
+          // Gleiches gilt für Rückwärtsfahrt
+          currentSpeed = (minSpeed > 0) ? -minSpeed : -step; 
         } else {
           currentSpeed = (currentSpeed - step < effectiveTarget) ? effectiveTarget : currentSpeed - step;
         }
       }
 
-      // Null-Punkt "Snap": Verhindert unendliches Ramping bei kleinsten Restwerten
       if (effectiveTarget == 0 && currentSpeed.abs() < step) {
         currentSpeed = 0;
       }
@@ -248,8 +257,6 @@ TrainConfig config;
     });
   }
 
-  // Diese Methode muss in den Unterklassen (z.B. MouldKingController) 
-  // implementiert werden und die Invertierung berücksichtigen!
   void sendHardwareCommand();
 
   void emergencyStop() { 
@@ -257,11 +264,14 @@ TrainConfig config;
     currentSpeed = 0.0; 
     _centralRampingTimer?.cancel();
     sendHardwareCommand(); 
-    updateAutoLight(); 
     if (onStatusChanged != null) onStatusChanged!();
   }
-  
-  void setLight(String port, bool isOn);
+
+  void setLight(String port, bool isOn) {
+    isLightOn = isOn;
+    sendHardwareCommand();
+    if (onStatusChanged != null) onStatusChanged!();
+  }
 
   Future<void> disconnect() async {
     isRunning = false;
@@ -275,5 +285,4 @@ TrainConfig config;
 
   Future<void> connectAndInitialize();
   Future<void> senderLoop();
-  void updateAutoLight(); 
 }

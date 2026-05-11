@@ -37,41 +37,60 @@ class MouldKingController extends TrainController {
       }
       isRunning = true;
       onStatusChanged?.call();
-      senderLoop();
+      senderLoop(); // Wichtig: Loop starten für den Heartbeat!
     }
   }
 
-  String _pctToHex(double pct) {
-    if (pct == 0) return "0000";
-    int val = (pct.abs() / 100.0 * 32767).toInt();
-    if (pct < 0) val += 0x8000;
+  // --- HILFSMETHODE: WANDELT POWER (-100 BIS 100) IN DEN MK-HEX-STRING ---
+  String _powerToHex(int power) {
+    if (power == 0) return "0000";
+    
+    // Umrechnen der Prozente in den 15-Bit Integer-Bereich von Mould King
+    int val = (power.abs() / 100.0 * 32767).toInt().clamp(0, 32767);
+    
+    // Bei Rückwärtsfahrt das Vorzeichen-Bit (0x8000) setzen
+    if (power < 0) val += 0x8000;
+    
     return val.toRadixString(16).toUpperCase().padLeft(4, '0');
   }
 
   // --- DIE HARDWARE-METHODE DER BASISKLASSE ---
   @override
   void sendHardwareCommand() {
-    // BLE Flood Protection:
-    // Da Mould King einen 100ms Heartbeat braucht, überlassen wir das Senden
-    // komplett der senderLoop(). Wenn wir hier bei jedem Ramping-Schritt (z.B. alle 10ms)
-    // funken würden, könnte der Bluetooth-Chip überlastet werden.
-    // Die Basisklasse aktualisiert im Hintergrund einfach 'currentSpeed'.
   }
 
-  // --- DIE NEUE, "DUMME" SENDER-LOOP ---
+  // --- DIE INTELLIGENTE SENDER-LOOP ---
   @override
   Future<void> senderLoop() async {
     while (isRunning && writeCharacteristic != null) {
-      // KEINE MATHEMATIK MEHR HIER! 
-      // Das Ramping übernimmt das zentrale Gehirn (TrainController).
-      // Wir holen uns einfach den von dort vorbereiteten currentSpeed-Wert.
-
-      String hexA = _pctToHex(currentSpeed);
-      String hexD = currentSpeed != 0 ? _pctToHex(-currentSpeed) : "0000";
-      String hexB = lightB > 0 ? (config.autoLight ? (lastDirForward ? "7FFF" : "81FF") : _pctToHex(lightB.toDouble())) : "0000";
-      String hexC = _pctToHex(lightC.toDouble());
       
-      String cmdStr = "T1440${hexA}${hexB}${hexC}000${hexD}W";
+      int powerA = getPowerForRole(config.portSettings['A'] ?? 'none');
+      int powerB = getPowerForRole(config.portSettings['B'] ?? 'none');
+      int powerC = getPowerForRole(config.portSettings['C'] ?? 'none');
+      int powerD = getPowerForRole(config.portSettings['D'] ?? 'none');
+      int powerE = getPowerForRole(config.portSettings['E'] ?? 'none');
+      int powerF = getPowerForRole(config.portSettings['F'] ?? 'none');
+
+      String hexA = _powerToHex(powerA);
+      String hexB = _powerToHex(powerB);
+      String hexC = _powerToHex(powerC);
+      String hexD = _powerToHex(powerD);
+      
+      // Prüfen, ob Ports E oder F im Workshop belegt wurden
+      bool is6PortHub = config.portSettings.containsKey('E') || config.portSettings.containsKey('F');
+
+      String cmdStr;
+      
+      if (is6PortHub) {
+        // Die lange Version für die 6-Port Akkubox (30 Zeichen)
+        String hexE = _powerToHex(powerE);
+        String hexF = _powerToHex(powerF);
+        cmdStr = "T1440${hexA}${hexB}${hexC}${hexD}${hexE}${hexF}W";
+      } else {
+        // Die exakte, bewährte Legacy-Version für die 4-Port Akkubox (25 Zeichen)
+        // WICHTIG: Die "000" bleiben genau so erhalten, wie in deinem Original-Code!
+        cmdStr = "T1440${hexA}${hexB}${hexC}000${hexD}W";
+      }
       
       try {
         await writeCharacteristic!.write([0x01], withoutResponse: true);
@@ -80,19 +99,7 @@ class MouldKingController extends TrainController {
         break; 
       }
       
-      // Fester 100ms Heartbeat (hält die Lok am Leben und verhindert BLE-Spam)
       await Future.delayed(const Duration(milliseconds: 100));
     }
   }
-
-  @override
-  void setLight(String port, bool isOn) {
-    int val = isOn ? 100 : 0;
-    if (port.toUpperCase() == 'B') lightB = val;
-    if (port.toUpperCase() == 'C') lightC = val;
-    onStatusChanged?.call();
-  }
-
-  @override
-  void updateAutoLight() {}  
 }

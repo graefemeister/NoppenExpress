@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import '../localization.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 class ReadmeScreen extends StatelessWidget {

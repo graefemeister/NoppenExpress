@@ -40,7 +40,7 @@ class QiqiaziController extends TrainController {
         onStatusChanged?.call();
         
         // Initialer Stopp-Befehl
-        _sendRaw(0, 0, 0, 0);
+        await _sendRaw(0, 0, 0, 0);
         
         senderLoop();
       } else {
@@ -62,36 +62,43 @@ class QiqiaziController extends TrainController {
     // nicht durch zu schnelle Ramping-Timer-Aufrufe überlasten.
   }
 
-  // --- DIE NEUE, "DUMME" SENDER-LOOP ---
+  // --- DIE INTELLIGENTE SENDER-LOOP ---
   @override
   Future<void> senderLoop() async {
     debugPrint("Qiqiazi: SenderLoop gestartet");
     while (isRunning && writeCharacteristic != null) {
-      // KEINE MATHEMATIK MEHR HIER! 
-      // Wir holen uns einfach direkt die aktuelle Geschwindigkeit aus der Basisklasse.
+      
+      // 1. Hole dynamisch die Power (-100 bis +100) für alle 4 Ports
+      int pA = getPowerForRole(config.portSettings['A'] ?? 'none');
+      int pB = getPowerForRole(config.portSettings['B'] ?? 'none');
+      int pC = getPowerForRole(config.portSettings['C'] ?? 'none');
+      int pD = getPowerForRole(config.portSettings['D'] ?? 'none');
 
       int b5 = 0; int b6 = 0; int b7 = 0; int b8 = 0;
-      int absSpeed = (currentSpeed.abs() * 2.55).toInt().clamp(0, 255);
 
-      // SLOT 1: Motor A + Licht B
-      if (currentSpeed.abs() > 0.1) {
-        b5 |= (currentSpeed > 0 ? 1 : 2); 
-        b6 = absSpeed;
-      }
-      if (lightB > 0) {
-        b5 |= 4; 
-        if (b6 == 0) b6 = 255; 
-      }
+      // --- SLOT 1: Physischer Port A (Motor) & Port B (Licht) ---
+      if (pA > 0) b5 |= 1;
+      if (pA < 0) b5 |= 2;
+      if (pB != 0) b5 |= 4; 
 
-      // SLOT 2: Licht C + Motor D (Invertiert)
-      if (currentSpeed.abs() > 0.1) {
-        b7 |= (currentSpeed > 0 ? 8 : 4); 
-        b8 = absSpeed;
-      }
-      if (lightC > 0) {
-        b7 |= 1; 
-        if (b8 == 0) b8 = 255; 
-      }
+      int absA = (pA.abs() * 2.55).toInt().clamp(0, 255);
+      int absB = (pB.abs() * 2.55).toInt().clamp(0, 255);
+      
+      // Hardware-Limit: A und B teilen sich das Geschwindigkeits-Byte! Der höhere Wert gewinnt.
+      b6 = (absA > absB) ? absA : absB; 
+      if ((b5 & 4) != 0 && b6 == 0) b6 = 255; // Licht leuchtet, aber Motor steht -> volles PWM!
+
+      // --- SLOT 2: Physischer Port C (Licht) & Port D (Motor) ---
+      if (pC != 0) b7 |= 1;
+      if (pD > 0) b7 |= 8;
+      if (pD < 0) b7 |= 4;
+
+      int absC = (pC.abs() * 2.55).toInt().clamp(0, 255);
+      int absD = (pD.abs() * 2.55).toInt().clamp(0, 255);
+      
+      // Hardware-Limit: C und D teilen sich das Geschwindigkeits-Byte!
+      b8 = (absC > absD) ? absC : absD; 
+      if ((b7 & 1) != 0 && b8 == 0) b8 = 255; // Licht leuchtet, aber Motor steht -> volles PWM!
 
       await _sendRaw(b5, b6, b7, b8);
       
@@ -119,32 +126,15 @@ class QiqiaziController extends TrainController {
   }
 
   @override
-  void updateAutoLight() {
-    // Schaltet beide Lichter ein, wenn der Zug fahren soll (Sollwert)
-    if (config.autoLight) {
-      bool shouldBeOn = targetSpeed.abs() > 0.1;
-      setLight('B', shouldBeOn);
-      setLight('C', shouldBeOn);
-    }
-  }
-
-  @override
-  void setLight(String port, bool isOn) {
-    int val = isOn ? 100 : 0;
-    if (port.toUpperCase() == 'B') lightB = val;
-    if (port.toUpperCase() == 'C') lightC = val;
-    onStatusChanged?.call();
-  }
-
-  @override
   void emergencyStop() {
-    super.emergencyStop(); // Basisklasse stoppt Timer, setzt Werte auf 0 und ruft sendHardwareCommand auf
-    _sendRaw(0, 0, 0, 0);  // Sicherheitshalber sofort funken (wegen 100ms Delay in der Loop)
+    super.emergencyStop(); 
+    _sendRaw(0, 0, 0, 0);  // Sicherheitshalber sofort funken, um das 100ms Delay zu umgehen
   }
 
   @override
   Future<void> disconnect() async {
-    await super.disconnect();
-    await _sendRaw(0, 0, 0, 0); // Alles ausschalten beim Trennen
+    // WICHTIG: Erst das Stop-Kommando senden, SOLANGE Bluetooth noch verbunden ist!
+    await _sendRaw(0, 0, 0, 0); 
+    await super.disconnect(); // Danach erst in der Basisklasse die Verbindung kappen
   }
 }

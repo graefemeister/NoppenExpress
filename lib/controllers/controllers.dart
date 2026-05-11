@@ -2,10 +2,11 @@
 export 'train_controller.dart';
 export 'CircuitCubeController.dart';
 export 'LegoDuploController.dart';
-export 'PyBricksController.dart';
+export 'BuWizz2Controller.dart';
 export 'LegoHubController.dart';
+export 'PFxBrickController.dart';
 export 'MouldKingController.dart';
 export 'MouldKingClassicController.dart';
 export 'QiqiaziController.dart'; 
 export 'GenericQuadController.dart'; 
-export 'MouldKingRwyController.dart'; 
+//export 'MouldKingRwyController.dart'; 

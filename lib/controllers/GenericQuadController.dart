@@ -1,6 +1,7 @@
-import 'train_controller.dart';
+import 'dart:async';
 import 'package:flutter/foundation.dart';               
 import 'package:flutter_blue_plus/flutter_blue_plus.dart'; 
+import 'train_controller.dart';
 
 class GenericQuadController extends TrainController {
   
@@ -44,7 +45,7 @@ class GenericQuadController extends TrainController {
         debugPrint("GenericQuad: ${_allWriteChars.length} Kanäle gefunden. Starte Motor-Loop.");
         isRunning = true;
         onStatusChanged?.call();
-        senderLoop();
+        senderLoop(); // Loop starten für den Heartbeat
       } else {
         debugPrint("GenericQuad ❌ FEHLER: Hub hat keine schreibbaren Kanäle!");
       }
@@ -53,34 +54,18 @@ class GenericQuadController extends TrainController {
     }
   }
 
-  int _pctToByte(double pct) {
-    if (pct == 0) return 0;
-    int val = pct.round().clamp(-100, 100);
+  // Wandelt unsere -100 bis +100 Power in das Byte-Format des Hubs um
+  int _pctToByte(int power) {
+    if (power == 0) return 0;
+    int val = power.clamp(-100, 100);
     return val < 0 ? (256 + val) : val;
-  }
-
-  // --- NEU: DYNAMISCHE PORT-ZUWEISUNG ---
-  // Prüft die UI-Konfiguration (config.portSettings) und gibt den passenden Wert zurück
-  int _getSpeedForPort(String portName, int manualLightValue) {
-    String setting = config.portSettings[portName] ?? 'none';
-    
-    if (setting == 'motor') {
-      return _pctToByte(currentSpeed);
-    } else if (setting == 'motor_inv') {
-      return _pctToByte(-currentSpeed);
-    } else if (setting == 'light') {
-      if (config.autoLight) {
-        return _pctToByte(lastDirForward ? 100.0 : -100.0);
-      } else {
-        return _pctToByte(manualLightValue.toDouble());
-      }
-    }
-    return 0; // Falls 'none' oder nicht konfiguriert
   }
 
   @override
   void sendHardwareCommand() {
-    // BLE Flood Protection: Senden bleibt exklusiv in der senderLoop()
+    // BLE Flood Protection: Wir senden hier nicht sofort!
+    // Die Basisklasse (Ramping Timer, Buttons) triggert diese Methode, 
+    // aber wir lassen die Werte einfach in der nächsten senderLoop()-Runde abholen.
   }
 
   @override
@@ -89,21 +74,26 @@ class GenericQuadController extends TrainController {
 
     while (isRunning && _allWriteChars.isNotEmpty) {
       
-      // Nutzt nun dynamisch die Konfiguration aus der Werkstatt!
-      int speedA = _getSpeedForPort('A', lightA);
-      int speedB = _getSpeedForPort('B', lightB);
-      int speedC = _getSpeedForPort('C', lightC);
-      int speedD = _getSpeedForPort('D', 0); // Basisklasse hat kein lightD, daher Fallback auf 0
+      // 1. Wir fragen unsere intelligente Basisklasse nach der Power (-100 bis 100)
+      int powerA = getPowerForRole(config.portSettings['A'] ?? 'none');
+      int powerB = getPowerForRole(config.portSettings['B'] ?? 'none');
+      int powerC = getPowerForRole(config.portSettings['C'] ?? 'none');
+      int powerD = getPowerForRole(config.portSettings['D'] ?? 'none');
+
+      // 2. Umrechnen in die Bytes für das Generic-Protokoll
+      int speedA = _pctToByte(powerA);
+      int speedB = _pctToByte(powerB);
+      int speedC = _pctToByte(powerC);
+      int speedD = _pctToByte(powerD);
 
       List<int> bytes = [0xAB, 0xCD, 0x01, speedA, speedB, speedC, speedD];
       int checksum = (bytes[3] + bytes[4] + bytes[5] + bytes[6]) & 0xFF;
       bytes.add(checksum);
       
-      String hexOut = bytes.map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase()).join(' ');
-      
-      // Nur bei Geschwindigkeit > 0 die Console spammen, um den Log lesbar zu halten
-      if (currentSpeed != 0 || targetSpeed != 0) {
-        debugPrint("GenericQuad TX (Speed: ${currentSpeed.toStringAsFixed(1)}%): $hexOut");
+      // Nur bei aktiven Werten die Konsole bespielen, um Spam zu vermeiden
+      if (powerA != 0 || powerB != 0 || powerC != 0 || powerD != 0) {
+        String hexOut = bytes.map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase()).join(' ');
+        debugPrint("GenericQuad TX: $hexOut");
       }
       
       for (var char in _allWriteChars) {
@@ -117,16 +107,4 @@ class GenericQuadController extends TrainController {
       await Future.delayed(const Duration(milliseconds: 200));
     }
   }
-
-  @override
-  void setLight(String port, bool isOn) {
-    int val = isOn ? 100 : 0;
-    if (port.toUpperCase() == 'A') lightA = val;
-    if (port.toUpperCase() == 'B') lightB = val;
-    if (port.toUpperCase() == 'C') lightC = val;
-    onStatusChanged?.call();
-  }
-
-  @override
-  void updateAutoLight() { }  
 }

@@ -23,7 +23,7 @@ class HandsetManager {
   // --- STATE VARIABLEN ---
   List<TrainController> activeTrains = [];
   int _focusedTrainIndex = 0;
-  final double speedIncrement = 10.0; // Geschwindigkeitsschritt pro Klick
+  //final double speedIncrement = 10.0; // Geschwindigkeitsschritt pro Klick
 
   // LED Farben-Mapping für die Zug-Indizes (0-8)
   static const List<int> trainColors = [
@@ -173,25 +173,49 @@ class HandsetManager {
     }
   }
 
-  void _handleSpeedCommand(int state) {
+    void _handleSpeedCommand(int state) {
     if (activeTrains.isEmpty) return;
     if (_focusedTrainIndex >= activeTrains.length) _focusedTrainIndex = 0;
     
     TrainController focusedTrain = activeTrains[_focusedTrainIndex];
 
+    // Aktuelle Werte dynamisch aus der Konfiguration der aktiven Lok laden
+    double currentTarget = focusedTrain.targetSpeed;
+    double delta = focusedTrain.config.deltaStep.toDouble();
+    double vMin = focusedTrain.config.vMin.toDouble();
+    double vMax = focusedTrain.config.vMax.toDouble();
+
     if (state == 1) { // Plus Button (+)
-      // Neue Zielgeschwindigkeit berechnen (-100 bis +100)
-      double newSpeed = (focusedTrain.targetSpeed + speedIncrement).clamp(-100.0, 100.0);
-      // Den TrainController offiziell anweisen (startet den Ramping-Timer!)
-      focusedTrain.setTargetSpeed(newSpeed.abs().toInt(), forward: newSpeed >= 0);
+      if (currentTarget >= 0) {
+        // Vorwärts beschleunigen: Aus dem Stand auf vMin, sonst delta addieren
+        currentTarget = (currentTarget == 0) ? vMin : currentTarget + delta;
+        if (currentTarget > vMax) currentTarget = vMax; // Limitieren auf vMax
+      } else {
+        // Wir fahren rückwärts und bremsen ab
+        currentTarget += delta;
+        // Todeszone-Check: Wenn wir langsamer als -vMin werden, sofort stoppen
+        if (currentTarget > -vMin) currentTarget = 0.0;
+      }
     } 
     else if (state == -1) { // Minus Button (-)
-      double newSpeed = (focusedTrain.targetSpeed - speedIncrement).clamp(-100.0, 100.0);
-      focusedTrain.setTargetSpeed(newSpeed.abs().toInt(), forward: newSpeed >= 0);
+      if (currentTarget <= 0) {
+        // Rückwärts beschleunigen: Aus dem Stand auf -vMin, sonst delta abziehen
+        currentTarget = (currentTarget == 0) ? -vMin : currentTarget - delta;
+        if (currentTarget < -vMax) currentTarget = -vMax; // Limitieren auf -vMax
+      } else {
+        // Wir fahren vorwärts und bremsen ab
+        currentTarget -= delta;
+        // Todeszone-Check: Wenn wir langsamer als vMin werden, sofort stoppen
+        if (currentTarget < vMin) currentTarget = 0.0;
+      }
     } 
     else if (state == 127 || state == -127) { // Roter Button (Stop)
       focusedTrain.emergencyStop();
+      return; // Hier können wir direkt abbrechen
     }
+
+    // Den berechneten Zielwert sauber an den Controller übergeben
+    focusedTrain.setTargetSpeed(currentTarget.abs().toInt(), forward: currentTarget >= 0);
   }
 
   void _handleSelectorCommand(int state) {
