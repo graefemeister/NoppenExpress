@@ -1,62 +1,82 @@
-import 'dart:async';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart'; 
+import 'dart:async';
 import 'train_controller.dart';
 
 class BuWizz2Controller extends TrainController {
-  // Die Basis-Kennung für BuWizz 2.0 Revisionen
-  static const String buwizzPrefix = "4e05"; 
-
   BuWizz2Controller(super.config);
+
+  // Die exakten UUIDs aus dem Hardware-Log
+  static const String _serviceUuid = "4e050000-74fb-4481-88b3-9919b1676e93";
+  static const String _charMotorUuid = "92d1";
 
   @override
   Future<void> connectAndInitialize() async {
-    if (isRunning) return;
-
-    debugPrint("BuWizz 2.0: Starte Deep-Scan für Hardware-Revision 4e05...");
     device = BluetoothDevice.fromId(config.mac);
 
-    try {
-      await device!.connect(timeout: const Duration(seconds: 5), autoConnect: false);
-      List<BluetoothService> services = await device!.discoverServices();
-      
-      for (var service in services) {
-        String sUuid = service.uuid.toString().toLowerCase();
-        
-        // Wir prüfen alle Services, die mit 4e05 beginnen
-        if (sUuid.startsWith(buwizzPrefix)) {
-          debugPrint("BuWizz Service gefunden: $sUuid");
-          
-          for (var char in service.characteristics) {
-            String cUuid = char.uuid.toString().toLowerCase();
-            debugPrint("  Prüfe Charakteristik: $cUuid");
+    device!.connectionState.listen((state) {
+      if (state == BluetoothConnectionState.disconnected && isRunning) {
+        isRunning = false;
+        onStatusChanged?.call();
+      }
+    });
 
-            // SMART-MATCH: Wir nehmen die Charakteristik, die Schreiben ohne Antwort erlaubt
-            // Das ist bei BuWizz fast immer der Steuerkanal.
-            if (char.properties.writeWithoutResponse || char.properties.write) {
-              writeCharacteristic = char;
-              debugPrint(">>> SMART-MATCH ERFOLGREICH: Nutze $cUuid zum Steuern!");
-              break; 
-            }
+    await device!.connect();
+
+    // MTU-Check
+    try {
+      if (await device!.mtu.first < 23) {
+        await device!.requestMtu(23);
+      }
+    } catch (_) {}
+
+    List<BluetoothService> services = await device!.discoverServices();
+    await Future.delayed(const Duration(milliseconds: 200)); 
+    
+    for (var service in services) {
+      // Wir suchen exakt den Service aus deinem Log
+      if (service.uuid.toString().toLowerCase() == _serviceUuid) {
+        for (var char in service.characteristics) {
+          // Wir nutzen .contains(), da Flutter die UUID im Log verkürzt ("92d1") darstellt
+          if (char.uuid.toString().toLowerCase().contains(_charMotorUuid)) {
+            writeCharacteristic = char;
           }
         }
-        if (writeCharacteristic != null) break;
       }
-
-      if (writeCharacteristic != null) {
-        isRunning = true;
-        if (onStatusChanged != null) onStatusChanged!(); 
-        senderLoop(); // Startet den Heartbeat[cite: 4]
-      } else {
-        debugPrint("FEHLER: Kein schreibbarer Kanal in den BuWizz-Services gefunden.");
-        await device!.disconnect();
-      }
-    } catch (e) {
-      debugPrint("BuWizz 2.0 Deep-Scan Fehler: $e");
-      isRunning = false;
-      onStatusChanged?.call();
     }
+
+    if (writeCharacteristic != null) {
+      try {
+        // --- HIER WAR DER FEHLER: ---
+        // Vorher stand hier fest: [0x11, 0x01]
+        // Jetzt lesen wir dynamisch den Modus aus der gespeicherten Config:
+        int selectedMode = config.buWizzPowerMode;
+        
+        debugPrint("BuWizz wird initialisiert im Modus: $selectedMode");
+
+        // AKTIVIERUNG: Sende den aus dem Workshop geladenen Modus an die Hardware
+        await writeCharacteristic!.write([0x11, selectedMode], withoutResponse: false); 
+        
+        await Future.delayed(const Duration(milliseconds: 200));
+
+        // Erster Watchdog-Trigger (0x10 = Motor-Command)
+        await writeCharacteristic!.write([0x10, 0x00, 0x00, 0x00, 0x00], withoutResponse: true);
+
+        isRunning = true;
+        onStatusChanged?.call();
+        senderLoop();
+      } catch (e) {
+        debugPrint("Fehler bei BuWizz Aktivierung: $e");
+      }
+    }
+  }
+
+  // Skalierung auf den BuWizz-Bereich (-127 bis 127)
+  int _scalePower(int power) {
+    if (power == 0) return 0;
+    double scaled = (power.abs() / 100.0) * 127;
+    int result = scaled.toInt().clamp(0, 127);
+    return power < 0 ? -result : result;
   }
 
   @override
@@ -65,32 +85,43 @@ class BuWizz2Controller extends TrainController {
   @override
   Future<void> senderLoop() async {
     while (isRunning && writeCharacteristic != null) {
-      try {
-        // Nutzt die dynamische Port-Konfiguration[cite: 6]
-        int pA = _scale(getPowerForRole(config.portSettings['A'] ?? 'none'));
-        int pB = _scale(getPowerForRole(config.portSettings['B'] ?? 'none'));
-        int pC = _scale(getPowerForRole(config.portSettings['C'] ?? 'none'));
-        int pD = _scale(getPowerForRole(config.portSettings['D'] ?? 'none'));
-
-        // BuWizz 2.0 Protokoll: [0x10, A, B, C, D, 0x00]
-        final List<int> data = [0x10, pA.toSigned(8), pB.toSigned(8), pC.toSigned(8), pD.toSigned(8), 0x00];
+      
+      int getAdjustedPower(String port) {
+        String role = config.portSettings[port] ?? 'none';
         
-        await writeCharacteristic!.write(data, withoutResponse: true);
+        if (!isLightOn) {
+          if (role == 'light_dir' || role == 'light_front' || role == 'light_back') return 0;
+        }
+
+        if (role == 'light_dir') {
+          // Die schonende Umpolung (funktioniert auch beim BuWizz super)
+          return lastDirForward ? 100 : -10; 
+        }
+
+        return getPowerForRole(role);
+      }
+
+      int p1 = _scalePower(getAdjustedPower('A'));
+      int p2 = _scalePower(getAdjustedPower('B'));
+      int p3 = _scalePower(getAdjustedPower('C'));
+      int p4 = _scalePower(getAdjustedPower('D'));
+
+      // Protokoll: 0x10 (Motorbefehl) + 4 signierte Bytes
+      List<int> packet = [
+        0x10, 
+        p1 < 0 ? 256 + p1 : p1,
+        p2 < 0 ? 256 + p2 : p2,
+        p3 < 0 ? 256 + p3 : p3,
+        p4 < 0 ? 256 + p4 : p4,
+      ];
+
+      try {
+        await writeCharacteristic!.write(packet, withoutResponse: true);
       } catch (e) {
-        debugPrint("BuWizz 2.0: Verbindung im Loop verloren: $e");
-        isRunning = false;
         break;
       }
-      await Future.delayed(const Duration(milliseconds: 100)); // Heartbeat alle 100ms[cite: 4]
+
+      await Future.delayed(const Duration(milliseconds: 100));
     }
-    onStatusChanged?.call(); // UI-Update bei Verbindungsverlust[cite: 2]
-  }
-
-  int _scale(int percent) => (percent * 1.27).round().clamp(-127, 127);
-
-  @override
-  Future<void> disconnect() async {
-    isRunning = false;
-    await super.disconnect();
   }
 }

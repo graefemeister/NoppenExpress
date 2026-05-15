@@ -29,6 +29,7 @@ class TrainConfig {
   bool isManualMode;
   bool useRampingProfile2;
   String imagePath;
+  int buWizzPowerMode;
   List<PFxAction> pfxActions = [];
 
   TrainConfig({
@@ -52,6 +53,7 @@ class TrainConfig {
     this.rampDelay2 = 250,
     this.isManualMode = false,
     this.useRampingProfile2 = false,
+    this.buWizzPowerMode = 2, // Standard-Fallback ist immer Normal (2)
     List<PFxAction>? pfxActions, // Optional im Konstruktor
   }) : pfxActions = pfxActions ?? []; // Wenn nichts übergeben wird, ist sie leer
 
@@ -69,6 +71,7 @@ class TrainConfig {
       'rampDelay': rampDelay, 'rampDelay2': rampDelay2,
       'useRampingProfile2': useRampingProfile2,
       'isManualMode': isManualMode, 
+      'buWizzPowerMode': buWizzPowerMode,
       'pfxActions': pfxActions.map((action) => action.toJson()).toList(),
     };
   }
@@ -111,6 +114,7 @@ class TrainConfig {
       rampDelay2: map['rampDelay2'] ?? 250,
       useRampingProfile2: map['useRampingProfile2'] ?? false,
       isManualMode: map['isManualMode'] ?? false,
+      buWizzPowerMode: map['buWizzPowerMode'] ?? 2, // NEW: Retrieve from map
       pfxActions: loadedActions, // Hier geben wir die geladenen Buttons an den Konstruktor
     );
   }

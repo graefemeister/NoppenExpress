@@ -37,59 +37,56 @@ class MouldKingController extends TrainController {
       }
       isRunning = true;
       onStatusChanged?.call();
-      senderLoop(); // Wichtig: Loop starten für den Heartbeat!
+      senderLoop(); 
     }
   }
 
-  // --- HILFSMETHODE: WANDELT POWER (-100 BIS 100) IN DEN MK-HEX-STRING ---
   String _powerToHex(int power) {
     if (power == 0) return "0000";
-    
-    // Umrechnen der Prozente in den 15-Bit Integer-Bereich von Mould King
     int val = (power.abs() / 100.0 * 32767).toInt().clamp(0, 32767);
-    
-    // Bei Rückwärtsfahrt das Vorzeichen-Bit (0x8000) setzen
     if (power < 0) val += 0x8000;
-    
     return val.toRadixString(16).toUpperCase().padLeft(4, '0');
   }
 
-  // --- DIE HARDWARE-METHODE DER BASISKLASSE ---
   @override
-  void sendHardwareCommand() {
-  }
+  void sendHardwareCommand() {}
 
-  // --- DIE INTELLIGENTE SENDER-LOOP ---
   @override
   Future<void> senderLoop() async {
     while (isRunning && writeCharacteristic != null) {
       
-      int powerA = getPowerForRole(config.portSettings['A'] ?? 'none');
-      int powerB = getPowerForRole(config.portSettings['B'] ?? 'none');
-      int powerC = getPowerForRole(config.portSettings['C'] ?? 'none');
-      int powerD = getPowerForRole(config.portSettings['D'] ?? 'none');
-      int powerE = getPowerForRole(config.portSettings['E'] ?? 'none');
-      int powerF = getPowerForRole(config.portSettings['F'] ?? 'none');
+      int getAdjustedPower(String port) {
+        String role = config.portSettings[port] ?? 'none';
+        
+        // Licht-Logik: Aus wenn isLightOn false
+        if (!isLightOn) {
+          if (role == 'light_dir' || role == 'light_front' || role == 'light_back') return 0;
+        }
 
-      String hexA = _powerToHex(powerA);
-      String hexB = _powerToHex(powerB);
-      String hexC = _powerToHex(powerC);
-      String hexD = _powerToHex(powerD);
-      
-      // Prüfen, ob Ports E oder F im Workshop belegt wurden
+        // Spezial-Handling für bi-polare LEDs (Umpolung)
+        if (role == 'light_dir') {
+          // Vorwärts volle Kraft, Rückwärts sanfter Impuls zur sicheren Umpolung
+          return lastDirForward ? 100 : -2; 
+        }
+
+        return getPowerForRole(role);
+      }
+
+      String hA = _powerToHex(getAdjustedPower('A'));
+      String hB = _powerToHex(getAdjustedPower('B'));
+      String hC = _powerToHex(getAdjustedPower('C'));
+      String hD = _powerToHex(getAdjustedPower('D'));
+
       bool is6PortHub = config.portSettings.containsKey('E') || config.portSettings.containsKey('F');
-
       String cmdStr;
-      
+
       if (is6PortHub) {
-        // Die lange Version für die 6-Port Akkubox (30 Zeichen)
-        String hexE = _powerToHex(powerE);
-        String hexF = _powerToHex(powerF);
-        cmdStr = "T1440${hexA}${hexB}${hexC}${hexD}${hexE}${hexF}W";
+        String hE = _powerToHex(getAdjustedPower('E'));
+        String hF = _powerToHex(getAdjustedPower('F'));
+        cmdStr = "T1440$hA$hB$hC$hD$hE$hF" + "W";
       } else {
-        // Die exakte, bewährte Legacy-Version für die 4-Port Akkubox (25 Zeichen)
-        // WICHTIG: Die "000" bleiben genau so erhalten, wie in deinem Original-Code!
-        cmdStr = "T1440${hexA}${hexB}${hexC}000${hexD}W";
+        // Die exakte 25-Zeichen-Struktur für deinen 4-Port Hub
+        cmdStr = "T1440$hA$hB$hC" + "000" + "$hD" + "W";
       }
       
       try {

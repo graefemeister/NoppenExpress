@@ -309,6 +309,92 @@ class TuningTab extends StatelessWidget {
     );
   }
 
+  // ==========================================
+  // BUWIZZ SPEZIFISCHE EINSTELLUNGEN
+  // ==========================================
+  Widget _buildBuWizzPowerCard(BuildContext context) {
+    if (!draft.protocol.toLowerCase().contains('buwizz')) {
+      return const SizedBox.shrink(); 
+    }
+
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Card(
+      elevation: 2,
+      color: isDark ? Colors.blueGrey.withOpacity(0.15) : Colors.blueGrey.shade50,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'buwizz_power_title'.tr, 
+              style: TextStyle(
+                fontSize: 18, 
+                fontWeight: FontWeight.bold, 
+                color: isDark ? Colors.white : Colors.blueGrey.shade800
+              )
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'buwizz_power_subtitle'.tr, 
+              style: TextStyle(
+                fontSize: 14, 
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade700
+              )
+            ),
+            const SizedBox(height: 16),
+            
+            DropdownButtonFormField<int>(
+              value: draft.buWizzPowerMode,
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.bolt),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                filled: true, 
+                fillColor: Theme.of(context).cardColor,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              ),
+              items: [
+                DropdownMenuItem(value: 1, child: Text('buwizz_power_slow'.tr)),
+                DropdownMenuItem(value: 2, child: Text('buwizz_power_normal'.tr)),
+                DropdownMenuItem(value: 3, child: Text('buwizz_power_fast'.tr)),
+                DropdownMenuItem(value: 4, child: Text('buwizz_power_ludicrous'.tr)),
+              ],
+              onChanged: (int? newValue) {
+                if (newValue != null) {
+                  draft.buWizzPowerMode = newValue;
+                  onUpdate();
+                }
+              },
+            ),
+            
+            if (draft.buWizzPowerMode > 1)
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'buwizz_power_warning'.tr,
+                        style: TextStyle(
+                          color: Colors.orange.shade800,
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -427,6 +513,15 @@ class TuningTab extends StatelessWidget {
         _buildPortConfigurationCard(context),
 
         const SizedBox(height: 16), 
+        
+        // ==========================================
+        // BUWIZZ LEISTUNGSMODUS 
+        // ==========================================
+        _buildBuWizzPowerCard(context),
+        
+        // Fügt etwas Platz ein, falls die BuWizz-Karte sichtbar ist
+        if (draft.protocol.toLowerCase().contains('buwizz')) 
+          const SizedBox(height: 16),
         
         // ==========================================
         // PFX SOUNDS & LICHTER 

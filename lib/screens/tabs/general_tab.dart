@@ -90,7 +90,7 @@ class GeneralTab extends StatelessWidget {
             DropdownMenuItem(value: 'lego_duplo', child: Text('LEGO DUPLO')),
             DropdownMenuItem(value: 'mould_king', child: Text('Mould King (GATT)')),
             DropdownMenuItem(value: 'mould_king_classic', child: Text('Mould King 4.0 (Broadcast)')),
-            //DropdownMenuItem(value: 'buwizz2', child: Text('Buwizz 2.0')),
+            DropdownMenuItem(value: 'buwizz2', child: Text('Buwizz 2.0')),
             DropdownMenuItem(value: 'pfxbrick', child: Text('PFxBrick')),
             DropdownMenuItem(value: 'circuit_cube', child: Text('Circuit Cube')),
             DropdownMenuItem(value: 'qiqiazi', child: Text('QIQIAZI')),
