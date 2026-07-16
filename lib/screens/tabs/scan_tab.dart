@@ -41,8 +41,7 @@ class _ScanTabState extends State<ScanTab> {
       _scanSub = FlutterBluePlus.scanResults.listen((r) {
         if (mounted) {
           setState(() {
-            _bleResults = r.where((result) => result.device.platformName.isNotEmpty).toList();
-          });
+          _bleResults = r.toList();});
         }
       });
       await FlutterBluePlus.startScan(timeout: const Duration(seconds: 10));

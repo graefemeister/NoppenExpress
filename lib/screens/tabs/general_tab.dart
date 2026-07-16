@@ -90,11 +90,13 @@ class GeneralTab extends StatelessWidget {
             DropdownMenuItem(value: 'lego_duplo', child: Text('LEGO DUPLO')),
             DropdownMenuItem(value: 'mould_king', child: Text('Mould King (GATT)')),
             DropdownMenuItem(value: 'mould_king_classic', child: Text('Mould King 4.0 (Broadcast)')),
+            DropdownMenuItem(value: 'mould_king_rwy', child: Text('Mould King RWY')),
             DropdownMenuItem(value: 'buwizz2', child: Text('Buwizz 2.0')),
             DropdownMenuItem(value: 'pfxbrick', child: Text('PFxBrick')),
             DropdownMenuItem(value: 'circuit_cube', child: Text('Circuit Cube')),
             DropdownMenuItem(value: 'qiqiazi', child: Text('QIQIAZI')),
             DropdownMenuItem(value: 'genericquadcontroller', child: Text('Generic Quad')),
+            DropdownMenuItem(value: 'sbrick', child: Text('S-Brick')),
           ],
           onChanged: (newValue) {
             if (newValue != null) {
@@ -128,7 +130,7 @@ class GeneralTab extends StatelessWidget {
         if (draft.protocol == 'mould_king_classic') ...[
           DropdownButtonFormField<int>(
             value: draft.channel ?? 1,
-            decoration: InputDecoration(labelText: 'channel_select'.tr, border: const OutlineInputBorder(), isDense: true),
+            decoration: InputDecoration(labelText: 'channel'.tr, border: const OutlineInputBorder(), isDense: true),
             items: const [
               DropdownMenuItem(value: 1, child: Text('1')),
               DropdownMenuItem(value: 2, child: Text('2')),

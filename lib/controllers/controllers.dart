@@ -9,4 +9,5 @@ export 'MouldKingController.dart';
 export 'MouldKingClassicController.dart';
 export 'QiqiaziController.dart'; 
 export 'GenericQuadController.dart'; 
-//export 'MouldKingRwyController.dart'; 
+export 'sBrickController.dart'; 
+export 'MouldKingRwyController.dart'; 

@@ -37,7 +37,7 @@ class MouldKingCentral {
         debugPrint("Native Fehler in Central Loop: $e");
       }
 
-      await Future.delayed(const Duration(milliseconds: 70));
+      await Future.delayed(const Duration(milliseconds: 50));
     }
   }
 }

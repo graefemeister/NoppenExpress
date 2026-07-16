@@ -35,14 +35,16 @@ class TrainManager {
           list.add(CircuitCubeController(config));
         } else if (config.protocol == 'pfxbrick') {
           list.add(PFxBrickController(config));
+        } else if (config.protocol == 'sbrick') {           
+          list.add(SBrickController(config));
         } else if (config.protocol == 'mould_king_classic') { 
           list.add(MouldKingClassicController(config)); 
         } else if (config.protocol == 'qiqiazi') { 
           list.add(QiqiaziController(config)); 
         } else if (config.protocol == 'genericquadcontroller') { 
           list.add(GenericQuadController(config));   
-        //} else if (config.protocol == 'mould_king_rwy') { 
-        //  list.add(MouldKingRwyController(config));           
+        } else if (config.protocol == 'mould_king_rwy') { 
+          list.add(MouldKingRwyController(config));           
         } else {
           // Standardfall für alle anderen Mould King Hubs
           list.add(MouldKingController(config));
