@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../l10n/l10n_extension.dart';
 import '../settings_manager.dart';
-import '../localization.dart';
 import '../controllers/handset_manager.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -9,7 +9,12 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import '../services/background_service.dart'; 
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final VoidCallback? onSettingsChanged;
+
+  const SettingsScreen({
+    super.key,
+    this.onSettingsChanged,
+  });
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -45,17 +50,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _currentTheme = theme;
       _wakelock = wake;
       _isBackgroundModeEnabled = bgMode;
-      _currentLang = lang;
+      _currentLang = (lang == null || lang.isEmpty) ? 'system' : lang;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Rundum-Schutz für das Kameraloch
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: Text('settings'.tr),
+          title: Text(context.l10n.settings),
         ),
         body: ListView(
           padding: const EdgeInsets.all(16),
@@ -71,16 +75,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onChanged: (String? newValue) async {
                     if (newValue != null) {
                       await SettingsManager.saveLanguage(newValue);
-                      L10n.lang = newValue; 
+                      
                       setState(() => _currentLang = newValue);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('lang_changed'.tr)),
-                      );
+                      
+                      widget.onSettingsChanged?.call();
+
+                      Future.delayed(const Duration(milliseconds: 50), () {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(context.l10n.lang_changed)),
+                          ); 
+                        });
+                      });
                     }
                   },
                   items: const [
+                    DropdownMenuItem(value: 'system', child: Text("System (Auto)")), // NEU
                     DropdownMenuItem(value: 'de', child: Text("Deutsch")),
                     DropdownMenuItem(value: 'en', child: Text("English")),
+                    DropdownMenuItem(value: 'fr', child: Text("Français")),
+                    DropdownMenuItem(value: 'it', child: Text("Italiano")),
+                    DropdownMenuItem(value: 'da', child: Text("Dansk")),
+                    DropdownMenuItem(value: 'nl', child: Text("Nederlands")),
+                    DropdownMenuItem(value: 'pl', child: Text("Polski")),
                   ],
                 ),
               ),
@@ -97,15 +115,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 title: const Text("LEGO Handset (88010)", style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text(_isHandsetConnected
-                    ? 'handset_connected'.tr 
-                    : (_isHandsetScanning ? 'handset_scanning'.tr : 'handset_disconnected'.tr)),
+                    ? context.l10n.handset_connected
+                    : (_isHandsetScanning ? context.l10n.handset_scanning : context.l10n.handset_disconnected)),
                 trailing: _isHandsetScanning
                     ? const SizedBox(
                         width: 24, 
                         height: 24, 
                         child: CircularProgressIndicator(strokeWidth: 2)
                       )
-                    : OutlinedButton( // Elegante Variante statt buntem Kasten
+                    : OutlinedButton( 
                         onPressed: _isHandsetConnected ? _disconnectHandset : _startHandsetScan,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: _isHandsetConnected ? Colors.red : Theme.of(context).colorScheme.primary,
@@ -113,7 +131,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             color: _isHandsetConnected ? Colors.red.withOpacity(0.5) : Theme.of(context).colorScheme.primary.withOpacity(0.5),
                           ),
                         ),
-                        child: Text(_isHandsetConnected ? 'btn_disconnect'.tr : 'btn_connect'.tr),
+                        child: Text(_isHandsetConnected ? context.l10n.btn_disconnect : context.l10n.btn_connect),
                       ),
               ),
             ),
@@ -125,13 +143,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   SwitchListTile(
                     secondary: Icon(Icons.autorenew, color: Theme.of(context).colorScheme.primary),
-                    title: Text('ui_auto_scale'.tr, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text(context.l10n.ui_auto_scale, style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text(
-                      'ui_auto_scale_desc'.tr,
+                      context.l10n.ui_auto_scale_desc,
                       style: const TextStyle(fontSize: 12),
                     ),
                     value: _isAutoScale,
-                    activeColor: Theme.of(context).colorScheme.primary, // Einheitlich!
+                    activeColor: Theme.of(context).colorScheme.primary, 
                     onChanged: (val) async {
                       setState(() => _isAutoScale = val);
                       await SettingsManager.saveAutoScale(val); 
@@ -139,6 +157,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       if (val) {
                         setState(() => _currentScale = 1.0);
                         await SettingsManager.saveScale(1.0);
+
+                        if (widget.onSettingsChanged != null) {
+                            widget.onSettingsChanged!();
+                        }
                       }
                     },
                   ),
@@ -148,7 +170,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ListTile(
                     leading: Icon(Icons.format_size, color: _isAutoScale ? Colors.grey : Theme.of(context).colorScheme.primary),
                     title: Text(
-                      'ui_scaling_manual'.tr, 
+                      context.l10n.ui_scaling_manual, 
                       style: TextStyle(color: _isAutoScale ? Colors.grey : null)
                     ),
                     subtitle: Text(
@@ -180,8 +202,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Card(
               child: SwitchListTile(
                 secondary: Icon(Icons.lightbulb_outline, color: Theme.of(context).colorScheme.primary),
-                title: Text('display_always_on'.tr, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text('display_always_on_desc'.tr, style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor,),),
+                title: Text(context.l10n.display_always_on, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(context.l10n.display_always_on_desc, style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor,),),
                 value: _wakelock,
                 activeColor: Theme.of(context).colorScheme.primary, // Einheitlich!
                 onChanged: (val) {
@@ -197,11 +219,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: SwitchListTile(
                 secondary: Icon(Icons.phonelink_lock, color: Theme.of(context).colorScheme.primary), 
                 title: Text(
-                  'settings_bg_mode'.tr, 
+                  context.l10n.settings_bg_mode, 
                   style: const TextStyle(fontWeight: FontWeight.bold)
                 ),
                 subtitle: Text( 
-                  'settings_bg_mode_desc'.tr,
+                  context.l10n.settings_bg_mode_desc,
                   style: TextStyle(
                     fontSize: 12, 
                     color: Theme.of(context).hintColor
@@ -219,18 +241,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Card(
               child: ListTile(
                 leading: Icon(Icons.brightness_6, color: Theme.of(context).colorScheme.primary),
-                title: Text('design_theme'.tr, style: const TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(context.l10n.design_theme, style: const TextStyle(fontWeight: FontWeight.bold)),
                 trailing: DropdownButton<int>(
                   value: _currentTheme,
                   underline: const SizedBox(),
                   onChanged: (val) {
                     setState(() => _currentTheme = val!);
                     SettingsManager.saveTheme(val!);
+
+                    if (widget.onSettingsChanged != null) {
+                      widget.onSettingsChanged!();
+                    }
                   },
                   items: [
-                    DropdownMenuItem(value: 0, child: Text('theme_system'.tr)),
-                    DropdownMenuItem(value: 1, child: Text('theme_light'.tr)),
-                    DropdownMenuItem(value: 2, child: Text('theme_dark'.tr)),
+                    DropdownMenuItem(value: 0, child: Text(context.l10n.theme_system)),
+                    DropdownMenuItem(value: 1, child: Text(context.l10n.theme_light)),
+                    DropdownMenuItem(value: 2, child: Text(context.l10n.theme_dark)),
                   ],
                 ),
               ),
@@ -289,8 +315,8 @@ Future<bool> _startBackgroundService() async {
     // FAKT: In v6.5.0 gibt startService direkt einen bool zurück.
     // Wir brauchen keine 'ServiceRequestResult' Klasse mehr.
     final bool success = await FlutterForegroundTask.startService(
-      notificationTitle: 'settings_bg_mode'.tr,
-      notificationText: 'settings_bg_mode_desc'.tr,
+      notificationTitle: context.l10n.settings_bg_mode,
+      notificationText: context.l10n.settings_bg_mode_desc,
       callback: startCallback,
     );
     
@@ -353,7 +379,7 @@ Future<void> _stopBackgroundService() async {
           _isHandsetScanning = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('handset_paired_success'.tr), backgroundColor: Colors.green),
+          SnackBar(content: Text(context.l10n.handset_paired_success), backgroundColor: Colors.green),
         );
       }
     } catch (e) {

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import '../../controllers/train_controller.dart';
-import '../../localization.dart';
+import 'package:noppenexpress_ble/l10n/l10n_extension.dart';
 
 class ScanTab extends StatefulWidget {
   final TrainConfig draft;
@@ -69,7 +69,7 @@ class _ScanTabState extends State<ScanTab> {
           const Icon(Icons.bluetooth_searching, size: 80, color: Colors.blueGrey),
           const SizedBox(height: 24),
           Text(
-            'scan_not_required'.tr,
+            context.l10n.scan_not_required,
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueGrey),
           ),
@@ -83,7 +83,7 @@ class _ScanTabState extends State<ScanTab> {
         ElevatedButton.icon(
           onPressed: _isScanning ? null : _startScan,
           icon: Icon(_isScanning ? Icons.sync : Icons.search),
-          label: Text(_isScanning ? 'scan_running'.tr : 'btn_start_scan'.tr),
+          label: Text(_isScanning ? context.l10n.scan_running : context.l10n.btn_start_scan),
         ),
         
         if (_isScanning) const LinearProgressIndicator(),
@@ -106,7 +106,7 @@ class _ScanTabState extends State<ScanTab> {
           return Card(
             child: ListTile(
               leading: const Icon(Icons.bluetooth),
-              title: Text(r.device.platformName.isEmpty ? 'unknown_device'.tr : r.device.platformName),
+              title: Text(r.device.platformName.isEmpty ? context.l10n.unknown_device : r.device.platformName),
               subtitle: Text(r.device.remoteId.toString()),
               trailing: Column(
                 mainAxisAlignment: MainAxisAlignment.center,

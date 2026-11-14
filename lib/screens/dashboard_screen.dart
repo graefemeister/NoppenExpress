@@ -5,13 +5,15 @@ import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../train_manager.dart';
 import '../controllers/controllers.dart';
-import '../localization.dart';
+import '../l10n/l10n_extension.dart';
 import 'workshop_screen.dart';
 import 'settings_screen.dart';
 import 'readme_screen.dart';
+import 'feedback_screen.dart';
 import '../widgets/train_control_panel.dart';
 import '../settings_manager.dart';
 import '../controllers/handset_manager.dart';
@@ -117,7 +119,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         if (!train.isRunning) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("${'connection_lost'.tr} '${train.name}'"),
+              content: Text("${context.l10n.connection_lost} '${train.name}'"),
               backgroundColor: Colors.red.shade800,
               behavior: SnackBarBehavior.floating,
             ),
@@ -137,7 +139,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     }
     setState(() {});
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("${'global_stop'.tr}: $stoppedCount"), backgroundColor: Colors.red.shade900),
+      SnackBar(content: Text("${context.l10n.global_stop}: $stoppedCount"), backgroundColor: Colors.red.shade900),
     );
   }
 
@@ -224,10 +226,10 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
 
   void _deleteTrain(TrainController train) async {
     bool? confirm = await showDialog(context: context, builder: (ctx) => AlertDialog(
-      title: Text('confirm_delete'.tr), 
+      title: Text(context.l10n.confirm_delete), 
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('cancel'.tr)), 
-        TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('delete'.tr, style: const TextStyle(color: Colors.red)))
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.l10n.cancel)), 
+        TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(context.l10n.delete, style: const TextStyle(color: Colors.red)))
       ]));
     if (confirm == true) {
       setState(() { _lokListe.remove(train); if (_selectedTrain == train) _selectedTrain = null; });
@@ -244,8 +246,8 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(leading: const Icon(Icons.edit), title: Text('edit'.tr), onTap: () { Navigator.pop(ctx); _openWorkshop(trainToEdit: train); }),
-            ListTile(leading: const Icon(Icons.delete, color: Colors.red), title: Text('delete'.tr, style: const TextStyle(color: Colors.red)), onTap: () { Navigator.pop(ctx); _deleteTrain(train); }),
+            ListTile(leading: const Icon(Icons.edit), title: Text(context.l10n.edit), onTap: () { Navigator.pop(ctx); _openWorkshop(trainToEdit: train); }),
+            ListTile(leading: const Icon(Icons.delete, color: Colors.red), title: Text(context.l10n.delete, style: const TextStyle(color: Colors.red)), onTap: () { Navigator.pop(ctx); _deleteTrain(train); }),
           ],
         ),
       ),
@@ -265,11 +267,15 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     await SettingsManager.setWakelock(shouldKeepScreenOn);
   }
 
-  void _showAbout() {
+  void _showAbout() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+
+    if (!mounted) return;
+
     showAboutDialog(
       context: context,
       applicationName: "NoppenExpress",
-      applicationVersion: "Version 1.14.0",
+      applicationVersion: "Version ${packageInfo.version}",
       applicationIcon: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Image.asset(
@@ -282,18 +288,18 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       applicationLegalese: "© 2026 graefemeister",
       children: [
         const SizedBox(height: 16),
-        Text('about_description'.tr, style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(context.l10n.about_description, style: const TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
         const Divider(),
         const SizedBox(height: 10),
         Text(
-          'about_credits_title'.tr,
+          context.l10n.about_credits_title,
           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey),
         ),
         Padding(
           padding: const EdgeInsets.only(top: 6.0),
           child: Text(
-            'about_credits_text'.tr,
+            context.l10n.about_credits_text,
             style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
           ),
         ),
@@ -306,7 +312,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             }
           },
           icon: const Icon(Icons.code),
-          label: Text('about_github_btn'.tr),
+          label: Text(context.l10n.about_github_btn),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF444C56), 
             foregroundColor: Colors.white,
@@ -406,7 +412,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                       ),
                     ],
                   ),
-                  // Kleines "Online"-Blinklicht in der Ecke
+                  // Kleines "Online"-Licht in der Ecke
                   Positioned(
                     top: -2,
                     right: -2,
@@ -443,7 +449,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         Widget listPart = Container(
           color: Theme.of(context).cardColor,
           child: sortedList.isEmpty
-              ? Center(child: Text('no_trains'.tr))
+              ? Center(child: Text(context.l10n.no_trains))
               : ListView.separated(
                   itemCount: sortedList.length,
                   separatorBuilder: (ctx, i) => const Divider(height: 1),
@@ -480,7 +486,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                             ),
                           ),
                           const SizedBox(width: 6),
-                          Text(train.isRunning ? 'online'.tr : 'offline'.tr, style: const TextStyle(fontSize: 11)),
+                          Text(train.isRunning ? context.l10n.online : context.l10n.offline, style: const TextStyle(fontSize: 11)),
                         ],
                       ),
                       selected: _selectedTrain == train,
@@ -495,7 +501,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         );
 
         Widget controlPanelWidget = _selectedTrain == null
-            ? Center(child: Text('select_train'.tr))
+            ? Center(child: Text(context.l10n.select_train))
             : TrainControlPanel(
                 key: ValueKey(_selectedTrain!.config.id),
                 train: _selectedTrain!,
@@ -516,7 +522,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                           onPressed: () => _openWorkshop(trainToEdit: _selectedTrain, initialTabIndex: 2),
                           icon: const Icon(Icons.edit_attributes), // Ein schickes Edit-Icon
                           label: Text(
-                            'edit'.tr, // Nutzt deine bestehende Übersetzung
+                            context.l10n.edit, // Nutzt deine bestehende Übersetzung
                             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                           style: ElevatedButton.styleFrom(
@@ -543,15 +549,15 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 ? TabBar(
                     controller: _tabController,
                     tabs: [
-                      Tab(icon: const Icon(Icons.list), text: 'list'.tr),
-                      Tab(icon: const Icon(Icons.settings_remote), text: 'controls'.tr),
+                      Tab(icon: const Icon(Icons.list), text: context.l10n.list),
+                      Tab(icon: const Icon(Icons.settings_remote), text: context.l10n.controls),
                     ],
                   )
                 : null,
             actions: [
               TextButton.icon(onPressed: _globalEmergencyStop, 
                 icon: const Icon(Icons.bolt, color: Colors.red, size: 28), 
-                label: Text('stop_all'.tr, 
+                label: Text(context.l10n.stop_all, 
                 style: const TextStyle(
                   color: Colors.red, 
                   fontWeight: FontWeight.bold,
@@ -564,20 +570,36 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 onSelected: (val) {
                   if (val == 'export') _exportData();
                   if (val == 'import') _importData();
+                  if (val == 'feedback') {
+                    Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (c) => const FeedbackScreen()),
+                      );
+                    }
                   if (val == 'about') _showAbout();
                   if (val == 'readme') Navigator.push(context, MaterialPageRoute(builder: (c) => const ReadmeScreen()));
                   if (val == 'settings') {
-                    Navigator.push(context, MaterialPageRoute(builder: (c) => const SettingsScreen())).then((_) => widget.onSettingsChanged());
-                    _updateSmartWakelock(); 
+                    Navigator.push(
+                      context, 
+                      MaterialPageRoute(
+                        builder: (c) => SettingsScreen(
+                          onSettingsChanged: widget.onSettingsChanged,
+                        ),
+                      ),
+                    ).then((_) { 
+                      widget.onSettingsChanged();
+                      _updateSmartWakelock(); 
+                    });
                   }
                 },
                 itemBuilder: (ctx) => [
-                  PopupMenuItem(value: 'export', child: Text('export'.tr)),
-                  PopupMenuItem(value: 'import', child: Text('import'.tr)),
+                  PopupMenuItem(value: 'export', child: Text(context.l10n.export)),
+                  PopupMenuItem(value: 'import', child: Text(context.l10n.import)),
                   const PopupMenuDivider(),
-                  PopupMenuItem(value: 'readme', child: Row(children: [const Icon(Icons.menu_book, size: 20), const SizedBox(width: 8), Text('readme'.tr)])),
-                  PopupMenuItem(value: 'settings', child: Row(children: [const Icon(Icons.settings, size: 20), const SizedBox(width: 8), Text('settings'.tr)])),
-                  PopupMenuItem(value: 'about', child: Row(children: [const Icon(Icons.info_outline, size: 20), const SizedBox(width: 8), Text('about'.tr)])),                
+                  PopupMenuItem(value: 'readme', child: Row(children: [const Icon(Icons.menu_book, size: 20), const SizedBox(width: 8), Text(context.l10n.readme)])),
+                  PopupMenuItem(value: 'feedback', child: Row(children: [const Icon(Icons.star_outline, size: 20), const SizedBox(width: 8), Text(context.l10n.feedbackAndRate)])),
+                  PopupMenuItem(value: 'settings', child: Row(children: [const Icon(Icons.settings, size: 20), const SizedBox(width: 8), Text(context.l10n.settings)])),
+                  PopupMenuItem(value: 'about', child: Row(children: [const Icon(Icons.info_outline, size: 20), const SizedBox(width: 8), Text(context.l10n.about)])),                
                 ],
               ),
             ],

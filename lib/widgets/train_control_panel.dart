@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../controllers/controllers.dart';
 import '../controllers/train_controller.dart';
-import '../localization.dart';
+import 'package:noppenexpress_ble/l10n/l10n_extension.dart';
 
 class TrainControlPanel extends StatefulWidget {
   final TrainController train;
@@ -90,7 +90,7 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
       case 'pfxbrick': return 'PFxBrick';
       case 'qiqiazi': return 'Qiqiazi';
       case 'genericquadcontroller': return 'Generic';
-      default: return "${'unknown_protocol'.tr} ($protocol)";
+      default: return "${context.l10n.unknown_protocol} ($protocol)";
     }
   }
 
@@ -152,7 +152,7 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
                           ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                           : Icon(isConnected ? Icons.link_off : Icons.link),
                       label: Text(
-                        isConnected ? 'disconnect'.tr : 'connect'.tr,
+                        isConnected ? context.l10n.disconnect : context.l10n.connect,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -175,7 +175,7 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
             children: [
               Expanded(
                 child: _modeToggle(
-                  label: isManual ? 'panel_mode_manual'.tr : 'panel_mode_gears'.tr,
+                  label: isManual ? context.l10n.panel_mode_manual : context.l10n.panel_mode_gears,
                   isActive: isManual,
                   activeColor: Colors.blue.shade800,
                   onTap: () {
@@ -187,7 +187,7 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
               const SizedBox(width: 8),
               Expanded(
                 child: _modeToggle(
-                  label: config.useRampingProfile2 ? 'panel_profile_2'.tr : 'panel_profile_1'.tr,
+                  label: config.useRampingProfile2 ? context.l10n.panel_profile_2 : context.l10n.panel_profile_1,
                   isActive: config.useRampingProfile2,
                   activeColor: Colors.purple.shade700,
                   onTap: () {
@@ -216,7 +216,7 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
                     border: Border.all(color: Theme.of(context).dividerColor),
                   ),
                   child: Text(
-                    "${'actual'.tr}: ${widget.train.currentSpeed.toInt().abs()}% | ${'target'.tr}: ${widget.train.targetSpeed.toInt().abs()}%",
+                    "${context.l10n.actual}: ${widget.train.currentSpeed.toInt().abs()}% | ${context.l10n.target}: ${widget.train.targetSpeed.toInt().abs()}%",
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                   ),
                 ),
@@ -232,7 +232,7 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: Text('stop'.tr.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(context.l10n.stop.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -247,7 +247,7 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
                     widget.onStateChanged();
                   } : null,
                   icon: const Icon(Icons.pause_circle_filled, size: 24),
-                  label: Text('halt'.tr, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  label: Text(context.l10n.halt, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     backgroundColor: Colors.orange.shade400,
@@ -267,7 +267,7 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
           const SizedBox(height: 32),
           const Divider(),
 
-          Text('accessories'.tr, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          Text(context.l10n.accessories, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8.0,
@@ -292,7 +292,7 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(children: [const Icon(Icons.description_outlined, size: 16, color: Colors.orange), const SizedBox(width: 8), Text('notes_header'.tr, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.orange))]),
+                  Row(children: [const Icon(Icons.description_outlined, size: 16, color: Colors.orange), const SizedBox(width: 8), Text(context.l10n.notes_header, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.orange))]),
                   const SizedBox(height: 8),
                   Text(config.notes, style: const TextStyle(fontSize: 14, height: 1.4)),
                 ],
@@ -309,7 +309,7 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
     final duplo = widget.train as LegoDuploController;
     return [
       FilterChip(
-        label: Text('light'.tr),
+        label: Text(context.l10n.light),
         selected: widget.train.isLightOn, // GEFIXT: Neue Status-Variable
         onSelected: isConnected ? (_) { 
            widget.train.toggleLight(); 
@@ -317,16 +317,16 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
         } : null, 
       ),
       _buildActionChip(
-        label: 'color'.tr,
+        label: context.l10n.color,
         icon: Icons.palette,
         onPressed: isConnected ? () { duplo.cycleColor(); setState(() {}); } : null,
         iconColor: isConnected ? Colors.blue : null,
       ),
-      _buildActionChip(label: 'horn'.tr, icon: Icons.volume_up, onPressed: isConnected ? () => duplo.playSound(10) : null),
-      _buildActionChip(label: 'fuel'.tr, icon: Icons.ev_station, onPressed: isConnected ? () => duplo.playSound(7) : null),
-      _buildActionChip(label: 'fanfare'.tr, icon: Icons.music_note, onPressed: isConnected ? () => duplo.playSound(5) : null),
-      _buildActionChip(label: 'brake'.tr, icon: Icons.stop_circle_outlined, onPressed: isConnected ? () => duplo.playSound(3) : null),
-      _buildActionChip(label: 'departure'.tr, icon: Icons.notifications_active, onPressed: isConnected ? () => duplo.playSound(9) : null),     
+      _buildActionChip(label: context.l10n.horn, icon: Icons.volume_up, onPressed: isConnected ? () => duplo.playSound(10) : null),
+      _buildActionChip(label: context.l10n.fuel, icon: Icons.ev_station, onPressed: isConnected ? () => duplo.playSound(7) : null),
+      _buildActionChip(label: context.l10n.fanfare, icon: Icons.music_note, onPressed: isConnected ? () => duplo.playSound(5) : null),
+      _buildActionChip(label: context.l10n.brake, icon: Icons.stop_circle_outlined, onPressed: isConnected ? () => duplo.playSound(3) : null),
+      _buildActionChip(label: context.l10n.departure, icon: Icons.notifications_active, onPressed: isConnected ? () => duplo.playSound(9) : null),     
     ];
   }
 
@@ -368,7 +368,7 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
             size: 18,
           ),
           label: Text(
-            'light'.tr, 
+            context.l10n.light, 
             style: TextStyle(
               color: widget.train.isLightOn ? Colors.black87 : null,
               fontWeight: widget.train.isLightOn ? FontWeight.bold : FontWeight.normal,
@@ -391,7 +391,7 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
             size: 18,
           ),
           label: Text(
-            'door'.tr, // (Ggf. noch in die localizations eintragen)
+            context.l10n.door, // (Ggf. noch in die localizations eintragen)
             style: TextStyle(
               color: widget.train.isDoorActive ? Colors.white : null,
               fontWeight: widget.train.isDoorActive ? FontWeight.bold : FontWeight.normal,

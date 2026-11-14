@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../controllers/train_controller.dart';
-import '../../localization.dart';
+import 'package:noppenexpress_ble/l10n/l10n_extension.dart';
 
 class GeneralTab extends StatelessWidget {
   final TrainConfig draft;
@@ -27,8 +27,8 @@ class GeneralTab extends StatelessWidget {
       builder: (bc) => SafeArea(
         child: Wrap(
           children: [
-            ListTile(leading: const Icon(Icons.photo_camera), title: Text('take_picture'.tr), onTap: () { Navigator.pop(bc); _getImage(ImageSource.camera); }),
-            ListTile(leading: const Icon(Icons.photo_library), title: Text('choose_picture'.tr), onTap: () { Navigator.pop(bc); _getImage(ImageSource.gallery); }),
+            ListTile(leading: const Icon(Icons.photo_camera), title: Text(context.l10n.take_picture), onTap: () { Navigator.pop(bc); _getImage(ImageSource.camera); }),
+            ListTile(leading: const Icon(Icons.photo_library), title: Text(context.l10n.choose_picture), onTap: () { Navigator.pop(bc); _getImage(ImageSource.gallery); }),
           ],
         ),
       ),
@@ -84,7 +84,7 @@ class GeneralTab extends StatelessWidget {
         
         DropdownButtonFormField<String>(
           value: draft.protocol,
-          decoration: InputDecoration(labelText: 'label_protocol'.tr, border: const OutlineInputBorder(), isDense: true),
+          decoration: InputDecoration(labelText: context.l10n.label_protocol, border: const OutlineInputBorder(), isDense: true),
           items: const [
             DropdownMenuItem(value: 'lego_hub', child: Text('LEGO Powered Up')),
             DropdownMenuItem(value: 'lego_duplo', child: Text('LEGO DUPLO')),
@@ -117,20 +117,20 @@ class GeneralTab extends StatelessWidget {
         const SizedBox(height: 16),
         TextField(
           controller: nameController, 
-          decoration: InputDecoration(labelText: 'label_name'.tr, border: const OutlineInputBorder(), isDense: true)
+          decoration: InputDecoration(labelText: context.l10n.label_name, border: const OutlineInputBorder(), isDense: true)
         ),
         const SizedBox(height: 16),
         TextField(
           controller: notesController, 
           minLines: 4, maxLines: 8, 
-          decoration: InputDecoration(labelText: 'label_notes'.tr, border: const OutlineInputBorder(), isDense: true, alignLabelWithHint: true)
+          decoration: InputDecoration(labelText: context.l10n.label_notes, border: const OutlineInputBorder(), isDense: true, alignLabelWithHint: true)
         ),
         const SizedBox(height: 16),
         
         if (draft.protocol == 'mould_king_classic') ...[
           DropdownButtonFormField<int>(
             value: draft.channel ?? 1,
-            decoration: InputDecoration(labelText: 'channel'.tr, border: const OutlineInputBorder(), isDense: true),
+            decoration: InputDecoration(labelText: context.l10n.channel, border: const OutlineInputBorder(), isDense: true),
             items: const [
               DropdownMenuItem(value: 1, child: Text('1')),
               DropdownMenuItem(value: 2, child: Text('2')),
@@ -146,7 +146,7 @@ class GeneralTab extends StatelessWidget {
         ] else ...[
           TextField(
             controller: macController, 
-            decoration: InputDecoration(labelText: 'label_mac'.tr, border: const OutlineInputBorder(), isDense: true)
+            decoration: InputDecoration(labelText: context.l10n.label_mac, border: const OutlineInputBorder(), isDense: true)
           ),
         ],
         const SizedBox(height: 150), 

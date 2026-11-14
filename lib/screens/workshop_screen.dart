@@ -1,7 +1,7 @@
 // Copyright (c) 2026 [graefemeister]
 import 'package:flutter/material.dart';
 import '../controllers/controllers.dart';
-import '../localization.dart';
+import '../l10n/l10n_extension.dart';
 
 // Importiere deine neuen Tab-Dateien
 import 'tabs/general_tab.dart';
@@ -74,7 +74,7 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
 
     if (_draft.name.isEmpty || _draft.mac.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('msg_incomplete'.tr))
+        SnackBar(content: Text(context.l10n.msg_incomplete))
       );
       return;
     }
@@ -112,18 +112,18 @@ class _WorkshopScreenState extends State<WorkshopScreen> {
           backgroundColor: Colors.greenAccent.shade700,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.check_circle, size: 28),
-          label: Text(widget.trainToEdit == null ? 'workshop_add'.tr : 'workshop_edit_save'.tr),
+          label: Text(widget.trainToEdit == null ? context.l10n.workshop_add : context.l10n.workshop_edit_save),
         ),
         body: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) => [
             SliverAppBar(
               pinned: false, floating: true, snap: true,
-              title: Text(widget.trainToEdit == null ? 'workshop_add'.tr : 'workshop_edit'.tr),
+              title: Text(widget.trainToEdit == null ? context.l10n.workshop_add : context.l10n.workshop_edit),
               bottom: TabBar(
                 tabs: [
-                  Tab(icon: const Icon(Icons.info_outline), text: 'tab_general'.tr),
-                  Tab(icon: const Icon(Icons.settings_bluetooth), text: 'tab_scan'.tr),
-                  Tab(icon: const Icon(Icons.tune), text: 'tab_tuning'.tr),
+                  Tab(icon: const Icon(Icons.info_outline), text: context.l10n.tab_general),
+                  Tab(icon: const Icon(Icons.settings_bluetooth), text: context.l10n.tab_scan),
+                  Tab(icon: const Icon(Icons.tune), text: context.l10n.tab_tuning),
                 ],
               ),
             ),

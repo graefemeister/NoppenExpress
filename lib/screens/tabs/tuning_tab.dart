@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../controllers/train_controller.dart';
-import '../../localization.dart';
+import 'package:noppenexpress_ble/l10n/l10n_extension.dart';
 import '../../models/pfx_action.dart';
+
 
 class TuningTab extends StatelessWidget {
   final TrainConfig draft;
@@ -13,13 +14,13 @@ class TuningTab extends StatelessWidget {
     required this.onUpdate,
   });
 
-  Map<String, String> get _roleLabels => {
-    'motor': 'port_motor'.tr,
-    'motor_inv': 'port_motor_inv'.tr,
-    'light_static': 'port_light'.tr,
-    'light_dir': 'port_light_dir'.tr,
-    'door': 'port_door'.tr,
-    'none': 'port_none'.tr,
+  Map<String, String> _getRoleLabels(BuildContext context) => {
+    'motor': context.l10n.port_motor,
+    'motor_inv': context.l10n.port_motor_inv,
+    'light_static': context.l10n.port_light,
+    'light_dir': context.l10n.port_light_dir,
+    'door': context.l10n.port_door,
+    'none': context.l10n.port_none,
   };
 
   List<String> _getAvailablePorts(String protocol) {
@@ -53,6 +54,7 @@ class TuningTab extends StatelessWidget {
   Widget _buildPortConfigurationCard(BuildContext context) {
     List<String> availablePorts = _getAvailablePorts(draft.protocol);
     bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final roleLabels = _getRoleLabels(context);
 
     return Card(
       elevation: 2,
@@ -65,7 +67,7 @@ class TuningTab extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'tuning_hardware_title'.tr, 
+              context.l10n.tuning_hardware_title, 
               style: TextStyle(
                 fontSize: 18, 
                 fontWeight: FontWeight.bold, 
@@ -74,7 +76,7 @@ class TuningTab extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'tuning_hardware_subtitle'.tr, 
+              context.l10n.tuning_hardware_subtitle, 
               style: TextStyle(
                 fontSize: 14, 
                 color: isDark ? Colors.grey.shade400 : Colors.grey.shade700
@@ -84,7 +86,7 @@ class TuningTab extends StatelessWidget {
             
             ...availablePorts.map((port) {
               String currentValue = draft.portSettings[port] ?? 'none';
-              if (!_roleLabels.containsKey(currentValue)) currentValue = 'none';
+              if (!roleLabels.containsKey(currentValue)) currentValue = 'none';
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12.0),
@@ -119,7 +121,7 @@ class TuningTab extends StatelessWidget {
                           fillColor: Theme.of(context).cardColor, // Passt sich an
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                         ),
-                        items: _roleLabels.entries.map((entry) => DropdownMenuItem<String>(
+                        items: roleLabels.entries.map((entry) => DropdownMenuItem<String>(
                           value: entry.key, child: Text(entry.value)
                         )).toList(),
                         onChanged: (String? newValue) {
@@ -158,7 +160,7 @@ class TuningTab extends StatelessWidget {
       selectedActionId = existingAction.actionId;
       selectedChannel = existingAction.channel;
     } else {
-      labelController.text = 'new_button'.tr;
+      labelController.text = context.l10n.new_button;
     }
 
     showDialog(
@@ -167,28 +169,28 @@ class TuningTab extends StatelessWidget {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(index == null ? 'new_pfx_action'.tr : 'edit_button'.tr),
+              title: Text(index == null ? context.l10n.new_pfx_action : context.l10n.edit),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // --- LABEL ---
                   TextField(
                     controller: labelController,
-                    decoration: InputDecoration(labelText: 'tuning_hardware_label'.tr),
+                    decoration: InputDecoration(labelText: context.l10n.tuning_hardware_label),
                   ),
                   const SizedBox(height: 16),
                   
                   // --- AKTION / BUTTON ID (1-6) ---
                   DropdownButtonFormField<int>(
                     value: selectedActionId,
-                    decoration: InputDecoration(labelText: 'tuning_hardware_key'.tr),
+                    decoration: InputDecoration(labelText: context.l10n.tuning_hardware_key),
                     items: [
-                      DropdownMenuItem(value: 1, child: Text('pfx_button_1'.tr)),
-                      DropdownMenuItem(value: 2, child: Text('pfx_button_2'.tr)),
-                      DropdownMenuItem(value: 3, child: Text('pfx_button_3'.tr)),
-                      DropdownMenuItem(value: 4, child: Text('pfx_button_4'.tr)),
-                      DropdownMenuItem(value: 5, child: Text('pfx_button_5'.tr)),
-                      DropdownMenuItem(value: 6, child: Text('pfx_button_6'.tr)),
+                      DropdownMenuItem(value: 1, child: Text(context.l10n.pfx_button_1)),
+                      DropdownMenuItem(value: 2, child: Text(context.l10n.pfx_button_2)),
+                      DropdownMenuItem(value: 3, child: Text(context.l10n.pfx_button_3)),
+                      DropdownMenuItem(value: 4, child: Text(context.l10n.pfx_button_4)),
+                      DropdownMenuItem(value: 5, child: Text(context.l10n.pfx_button_5)),
+                      DropdownMenuItem(value: 6, child: Text(context.l10n.pfx_button_6)),
                     ],
                     onChanged: (val) => setDialogState(() => selectedActionId = val!),
                   ),
@@ -198,11 +200,11 @@ class TuningTab extends StatelessWidget {
                   DropdownButtonFormField<int>(
                     // Sicherheits-Check, falls doch mal ein anderer Wert im Draft gespeichert wurde
                     value: [1, 2, 3, 4].contains(selectedChannel) ? selectedChannel : 1,
-                    decoration: InputDecoration(labelText: 'tuning_hardware_channel'.tr),
+                    decoration: InputDecoration(labelText: context.l10n.tuning_hardware_channel),
                     items: [1, 2, 3, 4].map((ch) {
                       return DropdownMenuItem<int>(
                         value: ch,
-                        child: Text("${'channel'.tr} $ch"),
+                        child: Text("${context.l10n.channel} $ch"),
                       );
                     }).toList(),
                     onChanged: (val) => setDialogState(() => selectedChannel = val!),
@@ -211,11 +213,11 @@ class TuningTab extends StatelessWidget {
               ),
               actions: [
                 TextButton(
-                  child: Text('cancel'.tr),
+                  child: Text(context.l10n.cancel),
                   onPressed: () => Navigator.of(dialogContext).pop(),
                 ),
                 ElevatedButton(
-                  child: Text(index == null ? 'add'.tr : 'save'.tr),
+                  child: Text(index == null ? context.l10n.add : context.l10n.btn_save),
                   onPressed: () {
                     if (labelController.text.isNotEmpty) {
                       final updatedAction = PFxAction(
@@ -259,10 +261,10 @@ class TuningTab extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('tuning_pfx_title'.tr, 
+            Text(context.l10n.tuning_pfx_title, 
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.blueGrey.shade800)),
             const SizedBox(height: 8),
-            Text('tuning_pfx_subtitle'.tr, 
+            Text(context.l10n.tuning_pfx_subtitle, 
               style: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700)),
             const SizedBox(height: 16),
             
@@ -273,7 +275,7 @@ class TuningTab extends StatelessWidget {
                  return ListTile(
                    contentPadding: EdgeInsets.zero,
                    title: Text(action.label, style: const TextStyle(fontWeight: FontWeight.bold)),
-                   subtitle: Text("${'channel'.tr} ${action.channel} | ${'key'.tr} 0x${action.actionId.toRadixString(16).padLeft(2, '0').toUpperCase()}"),
+                   subtitle: Text("${context.l10n.channel} ${action.channel} | ${context.l10n.key} 0x${action.actionId.toRadixString(16).padLeft(2, '0').toUpperCase()}"),
                    trailing: Row(
                      mainAxisSize: MainAxisSize.min,
                      children: [
@@ -300,7 +302,7 @@ class TuningTab extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: () => _showAddActionDialog(context),
                 icon: const Icon(Icons.add),
-                label: Text('add_new_button'.tr),
+                label: Text(context.l10n.add_new_button),
               ),
             )
           ],
@@ -329,7 +331,7 @@ class TuningTab extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'buwizz_power_title'.tr, 
+              context.l10n.buwizz_power_title, 
               style: TextStyle(
                 fontSize: 18, 
                 fontWeight: FontWeight.bold, 
@@ -338,7 +340,7 @@ class TuningTab extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'buwizz_power_subtitle'.tr, 
+              context.l10n.buwizz_power_subtitle, 
               style: TextStyle(
                 fontSize: 14, 
                 color: isDark ? Colors.grey.shade400 : Colors.grey.shade700
@@ -356,10 +358,10 @@ class TuningTab extends StatelessWidget {
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               ),
               items: [
-                DropdownMenuItem(value: 1, child: Text('buwizz_power_slow'.tr)),
-                DropdownMenuItem(value: 2, child: Text('buwizz_power_normal'.tr)),
-                DropdownMenuItem(value: 3, child: Text('buwizz_power_fast'.tr)),
-                DropdownMenuItem(value: 4, child: Text('buwizz_power_ludicrous'.tr)),
+                DropdownMenuItem(value: 1, child: Text(context.l10n.buwizz_power_slow)),
+                DropdownMenuItem(value: 2, child: Text(context.l10n.buwizz_power_normal)),
+                DropdownMenuItem(value: 3, child: Text(context.l10n.buwizz_power_fast)),
+                DropdownMenuItem(value: 4, child: Text(context.l10n.buwizz_power_ludicrous)),
               ],
               onChanged: (int? newValue) {
                 if (newValue != null) {
@@ -378,7 +380,7 @@ class TuningTab extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'buwizz_power_warning'.tr,
+                        context.l10n.buwizz_power_warning,
                         style: TextStyle(
                           color: Colors.orange.shade800,
                           fontSize: 12,
@@ -403,9 +405,9 @@ class TuningTab extends StatelessWidget {
         // ==========================================
         // TUNING-BEREICH 
         // ==========================================
-        Text('tuning_limits'.tr, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+        Text(context.l10n.tuning_limits, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
         
-        _buildSlider('vMin'.tr, draft.vMin.toDouble(), 0, 100, (v) {
+        _buildSlider(context.l10n.vMin, draft.vMin.toDouble(), 0, 100, (v) {
           draft.vMin = v.toInt();
           if (draft.vMax < draft.vMin) draft.vMax = draft.vMin;
           if ((draft.gears[1] ?? 0) < draft.vMin) draft.gears[1] = draft.vMin.toDouble();
@@ -415,7 +417,7 @@ class TuningTab extends StatelessWidget {
           onUpdate();
         }, divisions: 20),
 
-        _buildSlider('vMax'.tr, draft.vMax.toDouble(), 0, 100, (v) {
+        _buildSlider(context.l10n.vMax, draft.vMax.toDouble(), 0, 100, (v) {
           draft.vMax = v.toInt();
           if (draft.vMin > draft.vMax) draft.vMin = draft.vMax;
           if ((draft.gears[4] ?? 0) > draft.vMax) draft.gears[4] = draft.vMax.toDouble();
@@ -426,7 +428,7 @@ class TuningTab extends StatelessWidget {
         }, divisions: 20),
         
         const SizedBox(height: 16),
-        Text('tuning_speed_levels'.tr, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+        Text(context.l10n.tuning_speed_levels, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
         
         _buildSlider("V1", draft.gears[1] ?? 25.0, 0, 100, (v) {
           draft.gears[1] = v;
@@ -474,11 +476,11 @@ class TuningTab extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(children: [const Icon(Icons.speed, size: 18, color: Colors.blueGrey), const SizedBox(width: 8), Text('tuning_profile_1'.tr, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey))]),
+              Row(children: [const Icon(Icons.speed, size: 18, color: Colors.blueGrey), const SizedBox(width: 8), Text(context.l10n.tuning_profile_1, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey))]),
               const SizedBox(height: 12),
-              _buildSlider('tuning_acceleration'.tr, draft.rampStep.toDouble(), 1.0, 10.0, (v) { draft.rampStep = v.toInt(); onUpdate(); }, divisions: 9),
-              _buildSlider('tuning_brake'.tr, draft.brakeStep.toDouble(), 1.0, 10.0, (v) { draft.brakeStep = v.toInt(); onUpdate(); }, divisions: 9),
-              _buildSlider('tuning_ramp_delay'.tr, draft.rampDelay.toDouble(), 10.0, 1000.0, (v) { draft.rampDelay = v.toInt(); onUpdate(); }, divisions: 99),
+              _buildSlider(context.l10n.tuning_acceleration, draft.rampStep.toDouble(), 1.0, 10.0, (v) { draft.rampStep = v.toInt(); onUpdate(); }, divisions: 9),
+              _buildSlider(context.l10n.tuning_brake, draft.brakeStep.toDouble(), 1.0, 10.0, (v) { draft.brakeStep = v.toInt(); onUpdate(); }, divisions: 9),
+              _buildSlider(context.l10n.tuning_ramp_delay, draft.rampDelay.toDouble(), 10.0, 1000.0, (v) { draft.rampDelay = v.toInt(); onUpdate(); }, divisions: 99),
             ],
           ),
         ),
@@ -491,17 +493,17 @@ class TuningTab extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(children: [Icon(Icons.fitness_center, size: 18, color: Colors.orange.shade800), const SizedBox(width: 8), Text('tuning_profile_2'.tr, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange.shade800))]),
+              Row(children: [Icon(Icons.fitness_center, size: 18, color: Colors.orange.shade800), const SizedBox(width: 8), Text(context.l10n.tuning_profile_2, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange.shade800))]),
               const SizedBox(height: 12),
-              _buildSlider('tuning_acceleration'.tr, draft.rampStep2.toDouble(), 1.0, 10.0, (v) { draft.rampStep2 = v.toInt(); onUpdate(); }, divisions: 9),
-              _buildSlider('tuning_brake'.tr, draft.brakeStep2.toDouble(), 1.0, 10.0, (v) { draft.brakeStep2 = v.toInt(); onUpdate(); }, divisions: 9),
-              _buildSlider('tuning_ramp_delay'.tr, draft.rampDelay2.toDouble(), 10.0, 1000.0, (v) { draft.rampDelay2 = v.toInt(); onUpdate(); }, divisions: 99),
+              _buildSlider(context.l10n.tuning_acceleration, draft.rampStep2.toDouble(), 1.0, 10.0, (v) { draft.rampStep2 = v.toInt(); onUpdate(); }, divisions: 9),
+              _buildSlider(context.l10n.tuning_brake, draft.brakeStep2.toDouble(), 1.0, 10.0, (v) { draft.brakeStep2 = v.toInt(); onUpdate(); }, divisions: 9),
+              _buildSlider(context.l10n.tuning_ramp_delay, draft.rampDelay2.toDouble(), 10.0, 1000.0, (v) { draft.rampDelay2 = v.toInt(); onUpdate(); }, divisions: 99),
             ],
           ),
         ),
 
         const SizedBox(height: 16),
-        _buildSlider('tuning_delta_step'.tr, draft.deltaStep.toDouble(), 1.0, 25.0, (v) { draft.deltaStep = v.toInt(); onUpdate(); }, divisions: 24),
+        _buildSlider(context.l10n.tuning_delta_step, draft.deltaStep.toDouble(), 1.0, 25.0, (v) { draft.deltaStep = v.toInt(); onUpdate(); }, divisions: 24),
 
         const SizedBox(height: 32),
         const Divider(),

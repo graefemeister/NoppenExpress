@@ -6,9 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart'; 
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-
+import 'package:noppenexpress_ble/l10n/app_localizations.dart';
 import 'settings_manager.dart';
-import 'localization.dart';
 import 'screens/dashboard_screen.dart';
 import 'services/background_service.dart'; 
 
@@ -23,7 +22,7 @@ void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized(); 
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   
-  L10n.lang = await SettingsManager.loadLanguage();
+  //L10n.lang = await SettingsManager.loadLanguage();
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -50,6 +49,7 @@ class NoppenExpressApp extends StatefulWidget {
 class _NoppenExpressAppState extends State<NoppenExpressApp> {
   ThemeMode _themeMode = ThemeMode.system;
   double _uiScale = 1.0;
+  Locale _locale = const Locale('de');
 
   @override
   void initState() {
@@ -66,7 +66,8 @@ class _NoppenExpressAppState extends State<NoppenExpressApp> {
     await SettingsManager.setWakelock(wakelockBool);
 
     setState(() {
-      L10n.lang = savedLang;
+      // L10n.lang = savedLang; // später entfernen
+      _locale = Locale(savedLang);
       if (themeInt == 1) {
         _themeMode = ThemeMode.light;
       } else if (themeInt == 2) {
@@ -83,6 +84,11 @@ class _NoppenExpressAppState extends State<NoppenExpressApp> {
     return MaterialApp(
       title: 'NoppenExpress', 
       debugShowCheckedModeBanner: false,
+      locale: _locale, 
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
+      
       themeMode: _themeMode,
 
       theme: ThemeData(
