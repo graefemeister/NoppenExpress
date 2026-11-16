@@ -15,6 +15,30 @@ Nutze das **'+' Symbol**, um eine neue Lok anzulegen:
 * **Personalisierung:** Gib der Lok einen Namen, lade ein eigenes Foto hoch und hinterlege Wartungs-Notizen.
 * **Tuning:** Passe die 4 Fahrstufen (V1-V4) an, setze ein Limit für Rückwärtsfahrten oder konfiguriere das Ramping für besonders weiches Anfahren und Bremsen.
 
+
+Besonderheit der MK-M6.0 Broadcast-Hubs
+
+• Kein klassisches Bluetooth-Pairing: Im Gegensatz zu den regulären Mould King Hubs (die eine feste Bluetooth-Verbindung über ihre MAC-Adresse aufbauen), empfangen die MK-M6.0 Hubs (genau wie das RYW-Modul) ihre Steuerbefehle über ein Broadcast-Signal.
+• Keine MAC-Adresse erforderlich: In der App wird keine MAC-Adresse hinterlegt. Die Zuordnung erfolgt ausschließlich über Funkkanäle (1 bis 3).
+
+Anleitung: MK-M6.0 Broadcast-Hubs koppeln
+
+1. Lokeinstellungen in der App
+• Kanal zuweisen: Lege in den Lokeinstellungen der App den gewünschten Empfangskanal (1, 2 oder 3) für die Lok fest. Das Feld für die MAC-Adresse bleibt frei bzw. entfällt.
+
+2. Hubs einschalten & synchronisieren
+• Alle Hubs starten: Schalte alle MK-M6.0 Hubs ein, bis diese blinken.
+• Erste Lok verbinden: Drücke in der App bei einer Lok auf „Verbinden“.
+• Synchronisation prüfen: Sobald diese Verbindung aktiv ist, gleichen alle eingeschalteten Hubs ihren Blinktakt an und blinken synchron.
+• Weitere Loks verbinden: Drücke nun in der App nacheinander bei allen übrigen Loks auf „Verbinden“.
+
+3. Kanal direkt am Hub wählen
+• Kanal durchschalten: Drücke die grüne Taste am MK-M6.0 Hub, um den Empfangskanal zu wechseln.
+• Blink-Code abgleichen: Passe den Kanal am Hub an die Einstellung in der App an:
+	• 1x Blinken = Kanal 1
+	• 2x Blinken = Kanal 2
+	• 3x Blinken = Kanal 3
+
 ![App-Vorschau](Screenshots/Screenshot_20260410-001104.png)
 
 ### 🕹 DAS STEUERPULT
