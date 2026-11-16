@@ -26,9 +26,9 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
 
     final int minSpeed = widget.train.config.vMin;
     final int maxSpeed = widget.train.config.vMax;
-    
+
     // Wir bleiben konsequent bei int
-    int currentTargetAbs = widget.train.targetSpeed.toInt().abs(); 
+    int currentTargetAbs = widget.train.targetSpeed.toInt().abs();
     int newTargetAbs;
 
     if (currentTargetAbs == 0 && delta > 0) {
@@ -36,7 +36,7 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
       newTargetAbs = (minSpeed > 0) ? minSpeed : delta;
     } else {
       newTargetAbs = currentTargetAbs + delta;
-      
+
       // Sanftes Einrasten auf 0 beim Runterregeln
       if (minSpeed > 0 && newTargetAbs < minSpeed && delta < 0) {
         newTargetAbs = 0;
@@ -45,9 +45,12 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
 
     // Clamp sorgt dafür, dass wir innerhalb von 0 bis vMax bleiben
     newTargetAbs = newTargetAbs.clamp(0, maxSpeed);
-    
+
     // Hier jetzt ohne .toDouble(), da setTargetSpeed ein int will
-    widget.train.setTargetSpeed(newTargetAbs, forward: widget.train.lastDirForward);    
+    widget.train.setTargetSpeed(
+      newTargetAbs,
+      forward: widget.train.lastDirForward,
+    );
     // UI-Refresh erzwingen
     widget.onStateChanged();
   }
@@ -55,7 +58,10 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
   void _setAbsoluteGear(int gearIndex) {
     if (!widget.train.isRunning) return;
     int speedValue = (widget.train.config.gears[gearIndex] ?? 0).toInt();
-    widget.train.setTargetSpeed(speedValue, forward: widget.train.lastDirForward);
+    widget.train.setTargetSpeed(
+      speedValue,
+      forward: widget.train.lastDirForward,
+    );
     widget.onStateChanged();
   }
 
@@ -80,17 +86,30 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
 
   String _getProtocolDisplayName(String protocol) {
     switch (protocol) {
-      case 'mould_king': return 'Mould King (BLE)';
-      case 'mould_king_classic': return 'Mould King (Broadcast)';
-      case 'mould_king_rwy': return 'Mould King (RWY)';
-      case 'lego_hub': return 'LEGO Powered Up';
-      case 'buwizz2': return 'BuWizz 2.0';
-      case 'lego_duplo': return 'LEGO DUPLO';
-      case 'circuit_cube': return 'Circuit Cube';
-      case 'pfxbrick': return 'PFxBrick';
-      case 'qiqiazi': return 'Qiqiazi';
-      case 'genericquadcontroller': return 'Generic';
-      default: return "${context.l10n.unknown_protocol} ($protocol)";
+      case 'mould_king':
+        return 'Mould King (BLE)';
+      case 'mould_king_classic':
+        return 'Mould King (Broadcast)';
+      case 'mould_king_rwy':
+        return 'Mould King (RWY)';
+      case 'lego_hub':
+        return 'LEGO Powered Up';
+      case 'buwizz2':
+        return 'BuWizz 2.0';
+      case 'lego_duplo':
+        return 'LEGO DUPLO';
+      case 'circuit_cube':
+        return 'Circuit Cube';
+      case 'pfxbrick':
+        return 'PFxBrick';
+      case 'sbrick':
+        return 'SBrick';
+      case 'qiqiazi':
+        return 'Qiqiazi';
+      case 'genericquadcontroller':
+        return 'Generic';
+      default:
+        return "${context.l10n.unknown_protocol} ($protocol)";
     }
   }
 
@@ -102,29 +121,37 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
     final bool isLego = config.protocol == 'lego_hub';
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16.0, 3.0, 16.0, 24.0),      
+      padding: const EdgeInsets.fromLTRB(16.0, 3.0, 16.0, 24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.train.name, 
-                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                  widget.train.name,
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  _getProtocolDisplayName(config.protocol), 
+                  _getProtocolDisplayName(config.protocol),
                   style: TextStyle(
-                    fontSize: 13, 
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                    fontSize: 13,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.7),
                     letterSpacing: 0.5,
                   ),
                 ),
-                
+
                 const SizedBox(height: 16),
 
                 Row(
@@ -133,33 +160,61 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: config.imagePath.isNotEmpty
-                        ? (config.imagePath.startsWith('assets/')
-                            ? Image.asset(config.imagePath, width: 150, height: 85, fit: BoxFit.cover)
-                            : Image.file(File(config.imagePath), width: 150, height: 85, fit: BoxFit.cover))
-                        : Container(
-                            width: 150,
-                            height: 85,
-                            color: Theme.of(context).colorScheme.primaryContainer,
-                            child: const Icon(Icons.train, size: 40),
-                          ),
+                          ? (config.imagePath.startsWith('assets/')
+                                ? Image.asset(
+                                    config.imagePath,
+                                    width: 150,
+                                    height: 85,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Image.file(
+                                    File(config.imagePath),
+                                    width: 150,
+                                    height: 85,
+                                    fit: BoxFit.cover,
+                                  ))
+                          : Container(
+                              width: 150,
+                              height: 85,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primaryContainer,
+                              child: const Icon(Icons.train, size: 40),
+                            ),
                     ),
-                    
+
                     const Spacer(),
 
                     ElevatedButton.icon(
                       onPressed: _isConnecting ? null : _toggleConnection,
-                      icon: _isConnecting 
-                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      icon: _isConnecting
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
                           : Icon(isConnected ? Icons.link_off : Icons.link),
                       label: Text(
-                        isConnected ? context.l10n.disconnect : context.l10n.connect,
+                        isConnected
+                            ? context.l10n.disconnect
+                            : context.l10n.connect,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isConnected ? Colors.red.shade700 : Colors.green.shade700,
+                        backgroundColor: isConnected
+                            ? Colors.red.shade700
+                            : Colors.green.shade700,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 15,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                         elevation: 2,
                       ),
                     ),
@@ -175,7 +230,9 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
             children: [
               Expanded(
                 child: _modeToggle(
-                  label: isManual ? context.l10n.panel_mode_manual : context.l10n.panel_mode_gears,
+                  label: isManual
+                      ? context.l10n.panel_mode_manual
+                      : context.l10n.panel_mode_gears,
                   isActive: isManual,
                   activeColor: Colors.blue.shade800,
                   onTap: () {
@@ -187,11 +244,16 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
               const SizedBox(width: 8),
               Expanded(
                 child: _modeToggle(
-                  label: config.useRampingProfile2 ? context.l10n.panel_profile_2 : context.l10n.panel_profile_1,
+                  label: config.useRampingProfile2
+                      ? context.l10n.panel_profile_2
+                      : context.l10n.panel_profile_1,
                   isActive: config.useRampingProfile2,
                   activeColor: Colors.purple.shade700,
                   onTap: () {
-                    setState(() => config.useRampingProfile2 = !config.useRampingProfile2);
+                    setState(
+                      () => config.useRampingProfile2 =
+                          !config.useRampingProfile2,
+                    );
                     widget.onStateChanged();
                   },
                 ),
@@ -203,9 +265,9 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
           Row(
             children: [
               _directionToggle(),
-              
+
               const SizedBox(width: 12),
-              
+
               Expanded(
                 child: Container(
                   height: 48,
@@ -217,22 +279,38 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
                   ),
                   child: Text(
                     "${context.l10n.actual}: ${widget.train.currentSpeed.toInt().abs()}% | ${context.l10n.target}: ${widget.train.targetSpeed.toInt().abs()}%",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ),
-              
+
               const SizedBox(width: 12),
 
               ElevatedButton(
-                onPressed: isConnected ? () { widget.train.emergencyStop(); widget.onStateChanged(); } : null,
+                onPressed: isConnected
+                    ? () {
+                        widget.train.emergencyStop();
+                        widget.onStateChanged();
+                      }
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red.shade900,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 15,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                child: Text(context.l10n.stop.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(
+                  context.l10n.stop.toUpperCase(),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
@@ -242,59 +320,119 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: isConnected ? () {
-                    widget.train.setTargetSpeed(0, forward: widget.train.lastDirForward);
-                    widget.onStateChanged();
-                  } : null,
+                  onPressed: isConnected
+                      ? () {
+                          widget.train.setTargetSpeed(
+                            0,
+                            forward: widget.train.lastDirForward,
+                          );
+                          widget.onStateChanged();
+                        }
+                      : null,
                   icon: const Icon(Icons.pause_circle_filled, size: 24),
-                  label: Text(context.l10n.halt, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  label: Text(
+                    context.l10n.halt,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     backgroundColor: Colors.orange.shade400,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              _multiBtn(isManual ? "--" : "1", isManual ? -(config.deltaStep * 2) : 1, isManual),
-              _multiBtn(isManual ? "-" : "2", isManual ? -config.deltaStep : 2, isManual),
-              _multiBtn(isManual ? "+" : "3", isManual ? config.deltaStep : 3, isManual),
-              _multiBtn(isManual ? "++" : "4", isManual ? (config.deltaStep * 2) : 4, isManual),
+              _multiBtn(
+                isManual ? "--" : "1",
+                isManual ? -(config.deltaStep * 2) : 1,
+                isManual,
+              ),
+              _multiBtn(
+                isManual ? "-" : "2",
+                isManual ? -config.deltaStep : 2,
+                isManual,
+              ),
+              _multiBtn(
+                isManual ? "+" : "3",
+                isManual ? config.deltaStep : 3,
+                isManual,
+              ),
+              _multiBtn(
+                isManual ? "++" : "4",
+                isManual ? (config.deltaStep * 2) : 4,
+                isManual,
+              ),
             ],
           ),
 
           const SizedBox(height: 32),
           const Divider(),
 
-          Text(context.l10n.accessories, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          Text(
+            context.l10n.accessories,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8.0,
             runSpacing: 8.0,
             children: [
-              if (config.protocol == 'lego_duplo') ..._buildDuploControls(isConnected)
-              else if (config.protocol == 'pfxbrick') ..._buildDynamicPFxControls(isConnected)
-              
-              else ..._buildStandardControls(isConnected, config.portSettings),
+              if (config.protocol == 'lego_duplo')
+                ..._buildDuploControls(isConnected)
+              else if (config.protocol == 'pfxbrick')
+                ..._buildDynamicPFxControls(isConnected)
+              else
+                ..._buildStandardControls(isConnected, config.portSettings),
             ],
           ),
 
           if (config.notes.isNotEmpty) ...[
             const SizedBox(height: 32),
             Container(
-              width: double.infinity, padding: const EdgeInsets.all(16),
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.amber.withOpacity(0.1) : Colors.amber.shade50, 
-                borderRadius: BorderRadius.circular(10), 
-                border: Border.all(color: Colors.amber.withOpacity(0.3))
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.amber.withOpacity(0.1)
+                    : Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.amber.withOpacity(0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(children: [const Icon(Icons.description_outlined, size: 16, color: Colors.orange), const SizedBox(width: 8), Text(context.l10n.notes_header, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.orange))]),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.description_outlined,
+                        size: 16,
+                        color: Colors.orange,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        context.l10n.notes_header,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 8),
-                  Text(config.notes, style: const TextStyle(fontSize: 14, height: 1.4)),
+                  Text(
+                    config.notes,
+                    style: const TextStyle(fontSize: 14, height: 1.4),
+                  ),
                 ],
               ),
             ),
@@ -311,31 +449,58 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
       FilterChip(
         label: Text(context.l10n.light),
         selected: widget.train.isLightOn, // GEFIXT: Neue Status-Variable
-        onSelected: isConnected ? (_) { 
-           widget.train.toggleLight(); 
-           setState(() {}); 
-        } : null, 
+        onSelected: isConnected
+            ? (_) {
+                widget.train.toggleLight();
+                setState(() {});
+              }
+            : null,
       ),
       _buildActionChip(
         label: context.l10n.color,
         icon: Icons.palette,
-        onPressed: isConnected ? () { duplo.cycleColor(); setState(() {}); } : null,
+        onPressed: isConnected
+            ? () {
+                duplo.cycleColor();
+                setState(() {});
+              }
+            : null,
         iconColor: isConnected ? Colors.blue : null,
       ),
-      _buildActionChip(label: context.l10n.horn, icon: Icons.volume_up, onPressed: isConnected ? () => duplo.playSound(10) : null),
-      _buildActionChip(label: context.l10n.fuel, icon: Icons.ev_station, onPressed: isConnected ? () => duplo.playSound(7) : null),
-      _buildActionChip(label: context.l10n.fanfare, icon: Icons.music_note, onPressed: isConnected ? () => duplo.playSound(5) : null),
-      _buildActionChip(label: context.l10n.brake, icon: Icons.stop_circle_outlined, onPressed: isConnected ? () => duplo.playSound(3) : null),
-      _buildActionChip(label: context.l10n.departure, icon: Icons.notifications_active, onPressed: isConnected ? () => duplo.playSound(9) : null),     
+      _buildActionChip(
+        label: context.l10n.horn,
+        icon: Icons.volume_up,
+        onPressed: isConnected ? () => duplo.playSound(10) : null,
+      ),
+      _buildActionChip(
+        label: context.l10n.fuel,
+        icon: Icons.ev_station,
+        onPressed: isConnected ? () => duplo.playSound(7) : null,
+      ),
+      _buildActionChip(
+        label: context.l10n.fanfare,
+        icon: Icons.music_note,
+        onPressed: isConnected ? () => duplo.playSound(5) : null,
+      ),
+      _buildActionChip(
+        label: context.l10n.brake,
+        icon: Icons.stop_circle_outlined,
+        onPressed: isConnected ? () => duplo.playSound(3) : null,
+      ),
+      _buildActionChip(
+        label: context.l10n.departure,
+        icon: Icons.notifications_active,
+        onPressed: isConnected ? () => duplo.playSound(9) : null,
+      ),
     ];
   }
 
   List<Widget> _buildDynamicPFxControls(bool isConnected) {
     if (widget.train is! PFxBrickController) return [];
-    
+
     final pfx = widget.train as PFxBrickController;
     // Wir greifen auf die Liste in der Config zu
-    final actions = pfx.config.pfxActions; 
+    final actions = pfx.config.pfxActions;
 
     if (actions.isEmpty) return [];
 
@@ -344,16 +509,24 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
         label: Text(action.label),
         backgroundColor: Colors.blueGrey.shade800,
         labelStyle: const TextStyle(color: Colors.white),
-        onPressed: isConnected 
-            ? () => pfx.triggerRemoteAction(action.actionId, channel: action.channel) 
+        onPressed: isConnected
+            ? () => pfx.triggerRemoteAction(
+                action.actionId,
+                channel: action.channel,
+              )
             : null,
       );
     }).toList();
   }
 
   // GEFIXT: Komplett dynamische Zubehör-Buttons anhand der Port-Einstellungen
-  List<Widget> _buildStandardControls(bool isConnected, Map<String, String> portSettings) {
-    final bool hasLightPort = portSettings.values.any((role) => role.contains('light'));
+  List<Widget> _buildStandardControls(
+    bool isConnected,
+    Map<String, String> portSettings,
+  ) {
+    final bool hasLightPort = portSettings.values.any(
+      (role) => role.contains('light'),
+    );
     final bool hasDoorPort = portSettings.values.any((role) => role == 'door');
 
     return [
@@ -368,25 +541,31 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
             size: 18,
           ),
           label: Text(
-            context.l10n.light, 
+            context.l10n.light,
             style: TextStyle(
               color: widget.train.isLightOn ? Colors.black87 : null,
-              fontWeight: widget.train.isLightOn ? FontWeight.bold : FontWeight.normal,
+              fontWeight: widget.train.isLightOn
+                  ? FontWeight.bold
+                  : FontWeight.normal,
             ),
           ),
-          onSelected: isConnected ? (_) {
-            widget.train.toggleLight();
-            setState(() {});
-          } : null,
+          onSelected: isConnected
+              ? (_) {
+                  widget.train.toggleLight();
+                  setState(() {});
+                }
+              : null,
         ),
-        
+
       if (hasDoorPort)
         FilterChip(
           showCheckmark: false,
           selected: widget.train.isDoorActive,
           selectedColor: Colors.teal.shade300,
           avatar: Icon(
-            widget.train.isDoorActive ? Icons.door_front_door : Icons.door_front_door_outlined,
+            widget.train.isDoorActive
+                ? Icons.door_front_door
+                : Icons.door_front_door_outlined,
             color: widget.train.isDoorActive ? Colors.white : Colors.blueGrey,
             size: 18,
           ),
@@ -394,18 +573,27 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
             context.l10n.door, // (Ggf. noch in die localizations eintragen)
             style: TextStyle(
               color: widget.train.isDoorActive ? Colors.white : null,
-              fontWeight: widget.train.isDoorActive ? FontWeight.bold : FontWeight.normal,
+              fontWeight: widget.train.isDoorActive
+                  ? FontWeight.bold
+                  : FontWeight.normal,
             ),
           ),
-          onSelected: isConnected ? (_) {
-            widget.train.toggleDoor();
-            setState(() {});
-          } : null,
+          onSelected: isConnected
+              ? (_) {
+                  widget.train.toggleDoor();
+                  setState(() {});
+                }
+              : null,
         ),
     ];
   }
 
-  Widget _buildActionChip({required String label, required IconData icon, VoidCallback? onPressed, Color? iconColor}) {
+  Widget _buildActionChip({
+    required String label,
+    required IconData icon,
+    VoidCallback? onPressed,
+    Color? iconColor,
+  }) {
     return ActionChip(
       avatar: Icon(icon, size: 18, color: iconColor),
       label: Text(label),
@@ -413,7 +601,12 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
     );
   }
 
-  Widget _modeToggle({required String label, required bool isActive, required Color activeColor, required VoidCallback onTap}) {
+  Widget _modeToggle({
+    required String label,
+    required bool isActive,
+    required Color activeColor,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -421,107 +614,128 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
         decoration: BoxDecoration(
           color: isActive ? activeColor : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isActive ? activeColor : Colors.grey.withOpacity(0.5)),
+          border: Border.all(
+            color: isActive ? activeColor : Colors.grey.withOpacity(0.5),
+          ),
         ),
         alignment: Alignment.center,
-        child: Text(label, style: TextStyle(color: isActive ? Colors.white : null, fontWeight: FontWeight.bold)),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isActive ? Colors.white : null,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }
 
-Widget _directionToggle() {
-  final bool isMoving = widget.train.currentSpeed.abs() > 0;
-  final colorScheme = Theme.of(context).colorScheme;
-  
-  // Die einzige Wahrheit kommt jetzt direkt aus dem Zug
-  final bool isForward = widget.train.lastDirForward;
+  Widget _directionToggle() {
+    final bool isMoving = widget.train.currentSpeed.abs() > 0;
+    final colorScheme = Theme.of(context).colorScheme;
 
-  return GestureDetector(
-    onTap: isMoving ? null : () {
-      // 1. Richtung im Modell umkehren
-      widget.train.lastDirForward = !isForward;
-      
-      // 2. UI zwingen, sich neu zu zeichnen (Toggle springt um)
-      widget.onStateChanged();
-    },
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
-      decoration: BoxDecoration(
-        color: isMoving ? Colors.transparent : colorScheme.primary.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isMoving ? Colors.grey.withOpacity(0.2) : colorScheme.primary.withOpacity(0.4),
-          width: 1,
+    // Die einzige Wahrheit kommt jetzt direkt aus dem Zug
+    final bool isForward = widget.train.lastDirForward;
+
+    return GestureDetector(
+      onTap: isMoving
+          ? null
+          : () {
+              // 1. Richtung im Modell umkehren
+              widget.train.lastDirForward = !isForward;
+
+              // 2. UI zwingen, sich neu zu zeichnen (Toggle springt um)
+              widget.onStateChanged();
+            },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+        decoration: BoxDecoration(
+          color: isMoving
+              ? Colors.transparent
+              : colorScheme.primary.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isMoving
+                ? Colors.grey.withOpacity(0.2)
+                : colorScheme.primary.withOpacity(0.4),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildAnimatedArrow(
+              icon: Icons.keyboard_arrow_up_rounded,
+              isActive: isForward, // Hier isForward nutzen
+              isMoving: isMoving,
+              colorScheme: colorScheme,
+            ),
+            _buildAnimatedArrow(
+              icon: Icons.keyboard_arrow_down_rounded,
+              isActive: !isForward, // Hier !isForward nutzen
+              isMoving: isMoving,
+              colorScheme: colorScheme,
+            ),
+          ],
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildAnimatedArrow(
-            icon: Icons.keyboard_arrow_up_rounded,
-            isActive: isForward, // Hier isForward nutzen
-            isMoving: isMoving,
-            colorScheme: colorScheme,
-          ),
-          _buildAnimatedArrow(
-            icon: Icons.keyboard_arrow_down_rounded,
-            isActive: !isForward, // Hier !isForward nutzen
-            isMoving: isMoving,
-            colorScheme: colorScheme,
-          ),
-        ],
-      ),
-    ),
-  );
-}
+    );
+  }
 
-Widget _buildAnimatedArrow({
-  required IconData icon,
-  required bool isActive,
-  required bool isMoving,
-  required ColorScheme colorScheme,
-}) {
-  return AnimatedScale(
-    // Etwas moderatere Skalierung, um Platz zu sparen
-    scale: isActive ? 1.2 : 0.7,
-    duration: const Duration(milliseconds: 300),
-    curve: Curves.easeOutBack,
-    child: AnimatedOpacity(
-      opacity: isActive ? (isMoving ? 0.6 : 1.0) : 0.15,
+  Widget _buildAnimatedArrow({
+    required IconData icon,
+    required bool isActive,
+    required bool isMoving,
+    required ColorScheme colorScheme,
+  }) {
+    return AnimatedScale(
+      // Etwas moderatere Skalierung, um Platz zu sparen
+      scale: isActive ? 1.2 : 0.7,
       duration: const Duration(milliseconds: 300),
-      child: Icon(
-        icon,
-        size: 26, // Von 32 auf 26 reduziert
-        color: isActive ? colorScheme.primary : Colors.grey,
+      curve: Curves.easeOutBack,
+      child: AnimatedOpacity(
+        opacity: isActive ? (isMoving ? 0.6 : 1.0) : 0.15,
+        duration: const Duration(milliseconds: 300),
+        child: Icon(
+          icon,
+          size: 26, // Von 32 auf 26 reduziert
+          color: isActive ? colorScheme.primary : Colors.grey,
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
- Widget _multiBtn(String label, int value, bool isManual) {
+  Widget _multiBtn(String label, int value, bool isManual) {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 2.0),
         child: ElevatedButton(
-          onPressed: widget.train.isRunning ? () {
-            // 1. Die Logik ausführen
-            if (isManual) {
-              _updateSpeed(value);
-            } else {
-              _setAbsoluteGear(value);
-            }
-            // 2. GANZ WICHTIG: Die UI informieren, dass sich SOLL/IST geändert haben
-            widget.onStateChanged(); 
-          } : null,
+          onPressed: widget.train.isRunning
+              ? () {
+                  // 1. Die Logik ausführen
+                  if (isManual) {
+                    _updateSpeed(value);
+                  } else {
+                    _setAbsoluteGear(value);
+                  }
+                  // 2. GANZ WICHTIG: Die UI informieren, dass sich SOLL/IST geändert haben
+                  widget.onStateChanged();
+                }
+              : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blueGrey.shade700,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 20),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
             elevation: 1,
           ),
-          child: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
     );
