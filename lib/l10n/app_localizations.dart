@@ -99,9 +99,9 @@ abstract class AppLocalizations {
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
-    Locale('da'),
-    Locale('de'),
     Locale('en'),
+    Locale('de'),
+    Locale('da'),
     Locale('fr'),
     Locale('it'),
     Locale('nl'),
@@ -510,6 +510,12 @@ abstract class AppLocalizations {
   /// **'Licht'**
   String get light;
 
+  /// No description provided for @smoke.
+  ///
+  /// In de, this message translates to:
+  /// **'Dampf'**
+  String get smoke;
+
   /// No description provided for @light_b.
   ///
   /// In de, this message translates to:
@@ -672,11 +678,23 @@ abstract class AppLocalizations {
   /// **'Licht'**
   String get port_light;
 
+  /// No description provided for @port_light_inv.
+  ///
+  /// In de, this message translates to:
+  /// **'Licht (Invertiert)'**
+  String get port_light_inv;
+
   /// No description provided for @port_light_dir.
   ///
   /// In de, this message translates to:
   /// **'Licht (Richtungsabhängig)'**
   String get port_light_dir;
+
+  /// No description provided for @port_light_dir_inv.
+  ///
+  /// In de, this message translates to:
+  /// **'Licht (Richtungsabhängig, Invertiert)'**
+  String get port_light_dir_inv;
 
   /// No description provided for @port_motor.
   ///
@@ -690,11 +708,23 @@ abstract class AppLocalizations {
   /// **'Motor (Invertiert)'**
   String get port_motor_inv;
 
+  /// No description provided for @port_smoke.
+  ///
+  /// In de, this message translates to:
+  /// **'Dampf'**
+  String get port_smoke;
+
   /// No description provided for @port_none.
   ///
   /// In de, this message translates to:
   /// **'Nichts'**
   String get port_none;
+
+  /// No description provided for @port_max_brightness.
+  ///
+  /// In de, this message translates to:
+  /// **'Maximale Helligkeit'**
+  String get port_max_brightness;
 
   /// No description provided for @protocol_mk_classic.
   ///
@@ -1067,6 +1097,174 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'SPEICHERN'**
   String get workshop_edit_save;
+
+  /// No description provided for @close.
+  ///
+  /// In de, this message translates to:
+  /// **'Schließen'**
+  String get close;
+
+  /// No description provided for @consist.
+  ///
+  /// In de, this message translates to:
+  /// **'Traktion'**
+  String get consist;
+
+  /// No description provided for @consist_dissolve.
+  ///
+  /// In de, this message translates to:
+  /// **'Traktion auflösen (Entkoppeln)'**
+  String get consist_dissolve;
+
+  /// No description provided for @consist_create.
+  ///
+  /// In de, this message translates to:
+  /// **'Traktion bilden (Lok ankoppeln)...'**
+  String get consist_create;
+
+  /// No description provided for @consist_no_candidates.
+  ///
+  /// In de, this message translates to:
+  /// **'Keine weiteren Loks zum Ankoppeln verfügbar.'**
+  String get consist_no_candidates;
+
+  /// No description provided for @consist_couple_title.
+  ///
+  /// In de, this message translates to:
+  /// **'Lok ankoppeln'**
+  String get consist_couple_title;
+
+  /// No description provided for @consist_select_slave.
+  ///
+  /// In de, this message translates to:
+  /// **'Wähle eine Lokomotive als Slave aus:'**
+  String get consist_select_slave;
+
+  /// No description provided for @consist_back_to_back.
+  ///
+  /// In de, this message translates to:
+  /// **'Rücken an Rücken'**
+  String get consist_back_to_back;
+
+  /// No description provided for @consist_back_to_back_desc.
+  ///
+  /// In de, this message translates to:
+  /// **'Fahrtrichtung umkehren (z.B. Wendezug)'**
+  String get consist_back_to_back_desc;
+
+  /// No description provided for @consist_couple_btn.
+  ///
+  /// In de, this message translates to:
+  /// **'Ankoppeln'**
+  String get consist_couple_btn;
+
+  /// No description provided for @consist_coupled.
+  ///
+  /// In de, this message translates to:
+  /// **'angekoppelt an'**
+  String get consist_coupled;
+
+  /// No description provided for @consist_decoupled_single.
+  ///
+  /// In de, this message translates to:
+  /// **'Lok entkoppelt von'**
+  String get consist_decoupled_single;
+
+  /// No description provided for @consist_decoupled_all.
+  ///
+  /// In de, this message translates to:
+  /// **'Alle Loks entkoppelt von'**
+  String get consist_decoupled_all;
+
+  /// No description provided for @consist_trim.
+  ///
+  /// In de, this message translates to:
+  /// **'Trimmung'**
+  String get consist_trim;
+
+  /// No description provided for @consist_trim_title.
+  ///
+  /// In de, this message translates to:
+  /// **'Trimmung (Geschwindigkeitsabgleich)'**
+  String get consist_trim_title;
+
+  /// No description provided for @consist_reversed.
+  ///
+  /// In de, this message translates to:
+  /// **'(gedreht)'**
+  String get consist_reversed;
+
+  /// No description provided for @consist_reconnect.
+  ///
+  /// In de, this message translates to:
+  /// **'Neu verbinden'**
+  String get consist_reconnect;
+
+  /// No description provided for @consist_reconnect_failed.
+  ///
+  /// In de, this message translates to:
+  /// **'Verbindung fehlgeschlagen zu'**
+  String get consist_reconnect_failed;
+
+  /// No description provided for @consist_reset_trim.
+  ///
+  /// In de, this message translates to:
+  /// **'Auf 0% zurücksetzen'**
+  String get consist_reset_trim;
+
+  /// No description provided for @consist_manage_tooltip.
+  ///
+  /// In de, this message translates to:
+  /// **'Traktion verwalten'**
+  String get consist_manage_tooltip;
+
+  /// No description provided for @consist_battery_lowest.
+  ///
+  /// In de, this message translates to:
+  /// **'Niedrigster Akkustand im Verbund'**
+  String get consist_battery_lowest;
+
+  /// No description provided for @battery_level.
+  ///
+  /// In de, this message translates to:
+  /// **'Akkustand'**
+  String get battery_level;
+
+  /// No description provided for @tuning_light_fade.
+  ///
+  /// In de, this message translates to:
+  /// **'Licht-Aufblendzeit (Soft-Fade)'**
+  String get tuning_light_fade;
+
+  /// No description provided for @tuning_battery_cutoff_title.
+  ///
+  /// In de, this message translates to:
+  /// **'Akkuschutz (Auto-Stopp)'**
+  String get tuning_battery_cutoff_title;
+
+  /// No description provided for @tuning_battery_cutoff_subtitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Bremst die Lok sanft auf 0 ab (Ramping), sobald der Akkustand unter den Schwellwert fällt. Ein manuelles Weiterfahren bleibt möglich.'**
+  String get tuning_battery_cutoff_subtitle;
+
+  /// No description provided for @tuning_battery_cutoff_disabled.
+  ///
+  /// In de, this message translates to:
+  /// **'Aus (Deaktiviert)'**
+  String get tuning_battery_cutoff_disabled;
+
+  /// No description provided for @tuning_battery_cutoff_recommended.
+  ///
+  /// In de, this message translates to:
+  /// **'Empfohlen für LiPos'**
+  String get tuning_battery_cutoff_recommended;
+
+  /// No description provided for @battery_cutoff_triggered.
+  ///
+  /// In de, this message translates to:
+  /// **'Akkuschutz: Lok wurde wegen schwachem Akku sanft angehalten'**
+  String get battery_cutoff_triggered;
 }
 
 class _AppLocalizationsDelegate

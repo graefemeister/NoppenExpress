@@ -69,10 +69,10 @@ class QiqiaziController extends TrainController {
     while (isRunning && writeCharacteristic != null) {
       
       // 1. Hole dynamisch die Power (-100 bis +100) für alle 4 Ports
-      int pA = getPowerForRole(config.portSettings['A'] ?? 'none');
-      int pB = getPowerForRole(config.portSettings['B'] ?? 'none');
-      int pC = getPowerForRole(config.portSettings['C'] ?? 'none');
-      int pD = getPowerForRole(config.portSettings['D'] ?? 'none');
+      int pA = getPowerForRole(config.portSettings['A'] ?? 'none', 'A');
+      int pB = getPowerForRole(config.portSettings['B'] ?? 'none', 'B');
+      int pC = getPowerForRole(config.portSettings['C'] ?? 'none', 'C');
+      int pD = getPowerForRole(config.portSettings['D'] ?? 'none', 'D');
 
       int b5 = 0; int b6 = 0; int b7 = 0; int b8 = 0;
 
@@ -86,7 +86,7 @@ class QiqiaziController extends TrainController {
       
       // Hardware-Limit: A und B teilen sich das Geschwindigkeits-Byte! Der höhere Wert gewinnt.
       b6 = (absA > absB) ? absA : absB; 
-      if ((b5 & 4) != 0 && b6 == 0) b6 = 255; // Licht leuchtet, aber Motor steht -> volles PWM!
+      if ((b5 & 4) != 0 && b6 == 0) b6 = absB > 0 ? absB : 255; // Licht leuchtet, aber Motor steht -> PWM gemäß Licht-Power!
 
       // --- SLOT 2: Physischer Port C (Licht) & Port D (Motor) ---
       if (pC != 0) b7 |= 1;
@@ -98,7 +98,7 @@ class QiqiaziController extends TrainController {
       
       // Hardware-Limit: C und D teilen sich das Geschwindigkeits-Byte!
       b8 = (absC > absD) ? absC : absD; 
-      if ((b7 & 1) != 0 && b8 == 0) b8 = 255; // Licht leuchtet, aber Motor steht -> volles PWM!
+      if ((b7 & 1) != 0 && b8 == 0) b8 = absC > 0 ? absC : 255; // Licht leuchtet, aber Motor steht -> PWM gemäß Licht-Power!
 
       await _sendRaw(b5, b6, b7, b8);
       

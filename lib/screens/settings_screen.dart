@@ -50,7 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _currentTheme = theme;
       _wakelock = wake;
       _isBackgroundModeEnabled = bgMode;
-      _currentLang = (lang == null || lang.isEmpty) ? 'system' : lang;
+      _currentLang = lang.isEmpty ? 'system' : lang;
     });
   }
 

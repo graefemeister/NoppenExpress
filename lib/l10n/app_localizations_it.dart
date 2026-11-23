@@ -216,6 +216,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get light => 'Luci';
 
   @override
+  String get smoke => 'Vapore';
+
+  @override
   String get light_b => 'Luci B';
 
   @override
@@ -300,7 +303,13 @@ class AppLocalizationsIt extends AppLocalizations {
   String get port_light => 'Luci';
 
   @override
+  String get port_light_inv => 'Luci (inversione)';
+
+  @override
   String get port_light_dir => 'Luci (direzionali)';
+
+  @override
+  String get port_light_dir_inv => 'Luci (direzionali, inversione)';
 
   @override
   String get port_motor => 'Motore';
@@ -309,7 +318,13 @@ class AppLocalizationsIt extends AppLocalizations {
   String get port_motor_inv => 'Motore (invertito)';
 
   @override
+  String get port_smoke => 'Vapore';
+
+  @override
   String get port_none => 'Nessuno';
+
+  @override
+  String get port_max_brightness => 'Luminosità massima';
 
   @override
   String get protocol_mk_classic => 'Mould King (Classic / Broadcast)';
@@ -510,4 +525,92 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get workshop_edit_save => 'SALVA';
+
+  @override
+  String get close => 'Chiudi';
+
+  @override
+  String get consist => 'Trazione multipla';
+
+  @override
+  String get consist_dissolve => 'Sciogli trazione (Disaccoppia)';
+
+  @override
+  String get consist_create => 'Crea trazione (Accoppia locomotiva)...';
+
+  @override
+  String get consist_no_candidates =>
+      'Nessun\'altra locomotiva disponibile per l\'accoppiamento.';
+
+  @override
+  String get consist_couple_title => 'Accoppia locomotiva';
+
+  @override
+  String get consist_select_slave => 'Seleziona una locomotiva come slave:';
+
+  @override
+  String get consist_back_to_back => 'Schiena contro schiena';
+
+  @override
+  String get consist_back_to_back_desc =>
+      'Inverti direzione di marcia (es. treno reversibile)';
+
+  @override
+  String get consist_couple_btn => 'Accoppia';
+
+  @override
+  String get consist_coupled => 'accoppiato a';
+
+  @override
+  String get consist_decoupled_single => 'Locomotiva disaccoppiata da';
+
+  @override
+  String get consist_decoupled_all => 'Tutte le locomotive disaccoppiate da';
+
+  @override
+  String get consist_trim => 'Regolazione';
+
+  @override
+  String get consist_trim_title => 'Regolazione (sincronizzazione velocità)';
+
+  @override
+  String get consist_reversed => '(invertito)';
+
+  @override
+  String get consist_reconnect => 'Riconnetti';
+
+  @override
+  String get consist_reconnect_failed => 'Connessione fallita a';
+
+  @override
+  String get consist_reset_trim => 'Ripristina a 0%';
+
+  @override
+  String get consist_manage_tooltip => 'Gestisci trazione';
+
+  @override
+  String get consist_battery_lowest => 'Batteria più scarica del convoglio';
+
+  @override
+  String get battery_level => 'Livello batteria';
+
+  @override
+  String get tuning_light_fade => 'Tempo di dissolvenza luci (Soft-Fade)';
+
+  @override
+  String get tuning_battery_cutoff_title => 'Protezione batteria (Auto-stop)';
+
+  @override
+  String get tuning_battery_cutoff_subtitle =>
+      'Rallenta dolcemente a 0 quando la batteria scende sotto la soglia. La guida manuale rimane possibile.';
+
+  @override
+  String get tuning_battery_cutoff_disabled => 'Disattivato';
+
+  @override
+  String get tuning_battery_cutoff_recommended => 'Consigliato per LiPo';
+
+  @override
+  String get battery_cutoff_triggered =>
+      'Protezione batteria: Treno fermato dolcemente per batteria scarica';
 }

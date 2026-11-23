@@ -46,6 +46,24 @@ class LegoHubController extends TrainController {
       
       if (writeCharacteristic != null) {
         isRunning = true;
+
+        // --- TELEMETRIE: LWP3 BATTERIE-STATUS ABONNIEREN ---
+        try {
+          await writeCharacteristic!.setNotifyValue(true);
+          writeCharacteristic!.onValueReceived.listen((data) {
+            // LWP3 Hub Property Message: Byte 2 = 0x01 (Hub Properties), Byte 3 = 0x06 (Battery), Byte 4 = 0x06 (Update)
+            if (data.length >= 6 && data[2] == 0x01 && data[3] == 0x06 && data[4] == 0x06) {
+              batteryLevel = data[5].clamp(0, 100);
+              onStatusChanged?.call();
+            }
+          });
+          // LWP3 Hub Property Updates aktivieren (0x02) und sofortigen Stand anfordern (0x05)
+          writeCharacteristic!.write([0x05, 0x00, 0x01, 0x06, 0x02], withoutResponse: true);
+          writeCharacteristic!.write([0x05, 0x00, 0x01, 0x06, 0x05], withoutResponse: true);
+        } catch (e) {
+          debugPrint("LegoHub Battery Telemetrie Fehler: $e");
+        }
+
         onStatusChanged?.call();
         // Keine senderLoop() mehr nötig, da "On-Demand" gefunkt wird!
       } else {
@@ -84,7 +102,7 @@ class LegoHubController extends TrainController {
       String role = config.portSettings[portName] ?? 'none';
       
       if (role != 'none') {
-        int power = getPowerForRole(role);
+        int power = getPowerForRole(role, portName);
         _sendPortPower(portIndex, power);
       } else {
         // Zur Sicherheit Strom wegnehmen, wenn der Port ungenutzt ist

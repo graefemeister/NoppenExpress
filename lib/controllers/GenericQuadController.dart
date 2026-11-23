@@ -75,10 +75,10 @@ class GenericQuadController extends TrainController {
     while (isRunning && _allWriteChars.isNotEmpty) {
       
       // 1. Wir fragen unsere intelligente Basisklasse nach der Power (-100 bis 100)
-      int powerA = getPowerForRole(config.portSettings['A'] ?? 'none');
-      int powerB = getPowerForRole(config.portSettings['B'] ?? 'none');
-      int powerC = getPowerForRole(config.portSettings['C'] ?? 'none');
-      int powerD = getPowerForRole(config.portSettings['D'] ?? 'none');
+      int powerA = getPowerForRole(config.portSettings['A'] ?? 'none', 'A');
+      int powerB = getPowerForRole(config.portSettings['B'] ?? 'none', 'B');
+      int powerC = getPowerForRole(config.portSettings['C'] ?? 'none', 'C');
+      int powerD = getPowerForRole(config.portSettings['D'] ?? 'none', 'D');
 
       // 2. Umrechnen in die Bytes für das Generic-Protokoll
       int speedA = _pctToByte(powerA);

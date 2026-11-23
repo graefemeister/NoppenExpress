@@ -216,6 +216,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get light => 'Lys';
 
   @override
+  String get smoke => 'Damp';
+
+  @override
   String get light_b => 'Lys B';
 
   @override
@@ -300,7 +303,13 @@ class AppLocalizationsDa extends AppLocalizations {
   String get port_light => 'Lys';
 
   @override
+  String get port_light_inv => 'Lys (inverteret)';
+
+  @override
   String get port_light_dir => 'Lys (retningsbestemt)';
+
+  @override
+  String get port_light_dir_inv => 'Lys (retningsbestemt, inverteret)';
 
   @override
   String get port_motor => 'Motor';
@@ -309,7 +318,13 @@ class AppLocalizationsDa extends AppLocalizations {
   String get port_motor_inv => 'Motor (inverteret)';
 
   @override
+  String get port_smoke => 'Damp';
+
+  @override
   String get port_none => 'Ingen';
+
+  @override
+  String get port_max_brightness => 'Maksimal lysstyrke';
 
   @override
   String get protocol_mk_classic => 'Mould King (Classic / Broadcast)';
@@ -510,4 +525,91 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get workshop_edit_save => 'GEM';
+
+  @override
+  String get close => 'Luk';
+
+  @override
+  String get consist => 'Traktion';
+
+  @override
+  String get consist_dissolve => 'Opløs traktion (Frakobl)';
+
+  @override
+  String get consist_create => 'Opret traktion (Tilkobl lokomotiv)...';
+
+  @override
+  String get consist_no_candidates =>
+      'Ingen andre lokomotiver tilgængelige for tilkobling.';
+
+  @override
+  String get consist_couple_title => 'Tilkobl lokomotiv';
+
+  @override
+  String get consist_select_slave => 'Vælg et lokomotiv som slave:';
+
+  @override
+  String get consist_back_to_back => 'Ryg mod ryg';
+
+  @override
+  String get consist_back_to_back_desc => 'Vend køreretning (f.eks. vendetog)';
+
+  @override
+  String get consist_couple_btn => 'Tilkobl';
+
+  @override
+  String get consist_coupled => 'tilkoblet';
+
+  @override
+  String get consist_decoupled_single => 'Lokomotiv frakoblet fra';
+
+  @override
+  String get consist_decoupled_all => 'Alle lokomotiver frakoblet fra';
+
+  @override
+  String get consist_trim => 'Trimning';
+
+  @override
+  String get consist_trim_title => 'Trimning (hastighedsafstemning)';
+
+  @override
+  String get consist_reversed => '(vendt)';
+
+  @override
+  String get consist_reconnect => 'Genopret forbindelse';
+
+  @override
+  String get consist_reconnect_failed => 'Forbindelse mislykkedes til';
+
+  @override
+  String get consist_reset_trim => 'Nulstil til 0%';
+
+  @override
+  String get consist_manage_tooltip => 'Administrer traktion';
+
+  @override
+  String get consist_battery_lowest => 'Laveste batteri i samspil';
+
+  @override
+  String get battery_level => 'Batteriniveau';
+
+  @override
+  String get tuning_light_fade => 'Lys fade-tid (Soft-fade)';
+
+  @override
+  String get tuning_battery_cutoff_title => 'Batteribeskyttelse (Auto-stop)';
+
+  @override
+  String get tuning_battery_cutoff_subtitle =>
+      'Bremser toget blidt til 0, når batteriniveauet falder under tærsklen. Manuel kørsel er fortsat mulig.';
+
+  @override
+  String get tuning_battery_cutoff_disabled => 'Fra (Deaktiveret)';
+
+  @override
+  String get tuning_battery_cutoff_recommended => 'Anbefalet til LiPo';
+
+  @override
+  String get battery_cutoff_triggered =>
+      'Batteribeskyttelse: Toget blev standset pga. lavt batteri';
 }

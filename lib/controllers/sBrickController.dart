@@ -9,6 +9,7 @@ class SBrickController extends TrainController {
 
   StreamSubscription<BluetoothConnectionState>? _connectionSubscription;
   Timer? _heartbeatTimer;
+  Timer? _batteryTimer;
   
   final Map<int, List<int>> _lastSentCommands = {};
   final Map<int, DateTime> _lastSentTimes = {}; 
@@ -50,6 +51,38 @@ class SBrickController extends TrainController {
       isRunning = true;
       _lastSentCommands.clear(); 
       _lastSentTimes.clear(); 
+
+      // TELEMETRIE: SBrick ADC-Spannungsabfrage abonnieren
+      try {
+        await writeCharacteristic!.setNotifyValue(true);
+        writeCharacteristic!.onValueReceived.listen((data) {
+          if (data.length >= 2) {
+            int rawAdc = data[0] + (data[1] << 8);
+            if (rawAdc > 0) {
+              // Formel: (rawAdc / 16.0) * (1.22 / 2047.0) * 11.0 ≈ rawAdc * 0.00041015 V
+              double voltage = (rawAdc / 16.0) * (1.22 / 2047.0) * 11.0;
+              // 9V-Batteriebox (6x AA): ca. 6.0V = 0% bis 9.6V = 100%
+              double pct = ((voltage - 6.0) / (9.6 - 6.0)) * 100.0;
+              batteryLevel = pct.round().clamp(0, 100);
+              onStatusChanged?.call();
+            }
+          }
+        });
+        writeCharacteristic!.write([0x0F, 0x00], withoutResponse: true);
+      } catch (e) {
+        debugPrint("S-Brick Battery Telemetrie Fehler: $e");
+      }
+
+      // Periodischer Battery-Query alle 5 Sekunden
+      _batteryTimer?.cancel();
+      _batteryTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+        if (isRunning && writeCharacteristic != null) {
+          try {
+            writeCharacteristic!.write([0x0F, 0x00], withoutResponse: true);
+          } catch (_) {}
+        }
+      });
+
       onStatusChanged?.call();
 
       // WICHTIG: Startet den Hintergrund-Heartbeat für den S-Brick Watchdog!
@@ -77,7 +110,7 @@ class SBrickController extends TrainController {
       String role = config.portSettings[portKey] ?? 'none';
       if (role == 'none') return;
 
-      int power = getPowerForRole(role); 
+      int power = getPowerForRole(role, portKey); 
       List<int> command;
 
       if (power == 0) {
@@ -134,6 +167,8 @@ class SBrickController extends TrainController {
   @override
   Future<void> disconnect() async {
     _heartbeatTimer?.cancel();
+    _batteryTimer?.cancel();
+    _batteryTimer = null;
     await _connectionSubscription?.cancel();
     _connectionSubscription = null;
     await super.disconnect(); 

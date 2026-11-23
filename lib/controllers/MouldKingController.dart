@@ -1,6 +1,5 @@
-import 'package:flutter/foundation.dart';               
-import 'package:flutter_blue_plus/flutter_blue_plus.dart'; 
-import 'dart:convert';                                 
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'dart:convert';
 import 'train_controller.dart';
 
 class MouldKingController extends TrainController {
@@ -17,9 +16,9 @@ class MouldKingController extends TrainController {
       }
     });
 
-    await device!.connect(); 
+    await device!.connect();
     await Future.delayed(const Duration(milliseconds: 500));
-    
+
     List<BluetoothService> services = await device!.discoverServices();
     for (var service in services) {
       for (var characteristic in service.characteristics) {
@@ -32,12 +31,15 @@ class MouldKingController extends TrainController {
     if (writeCharacteristic != null) {
       List<String> wakeupCmds = ["T041AABBW", "T00EW", "T01F1W", "T00CW"];
       for (var cmd in wakeupCmds) {
-        await writeCharacteristic!.write(utf8.encode(cmd), withoutResponse: true);
+        await writeCharacteristic!.write(
+          utf8.encode(cmd),
+          withoutResponse: true,
+        );
         await Future.delayed(const Duration(milliseconds: 100));
       }
       isRunning = true;
       onStatusChanged?.call();
-      senderLoop(); 
+      senderLoop();
     }
   }
 
@@ -54,22 +56,25 @@ class MouldKingController extends TrainController {
   @override
   Future<void> senderLoop() async {
     while (isRunning && writeCharacteristic != null) {
-      
       int getAdjustedPower(String port) {
         String role = config.portSettings[port] ?? 'none';
-        
-        // Licht-Logik: Aus wenn isLightOn false
-        if (!isLightOn) {
-          if (role == 'light_dir' || role == 'light_front' || role == 'light_back') return 0;
+
+        int power = getPowerForRole(role, port);
+        if (power == 0) {
+          return 0;
         }
 
         // Spezial-Handling für bi-polare LEDs (Umpolung)
         if (role == 'light_dir') {
           // Vorwärts volle Kraft, Rückwärts sanfter Impuls zur sicheren Umpolung
-          return lastDirForward ? 100 : -2; 
+          return lastDirForward ? power.abs() : -2;
+        }
+        if (role == 'light_dir_inv') {
+          // Vorwärts volle Kraft, Rückwärts sanfter Impuls zur sicheren Umpolung
+          return lastDirForward ? -2 : power.abs();
         }
 
-        return getPowerForRole(role);
+        return power;
       }
 
       String hA = _powerToHex(getAdjustedPower('A'));
@@ -77,7 +82,9 @@ class MouldKingController extends TrainController {
       String hC = _powerToHex(getAdjustedPower('C'));
       String hD = _powerToHex(getAdjustedPower('D'));
 
-      bool is6PortHub = config.portSettings.containsKey('E') || config.portSettings.containsKey('F');
+      bool is6PortHub =
+          config.portSettings.containsKey('E') ||
+          config.portSettings.containsKey('F');
       String cmdStr;
 
       if (is6PortHub) {
@@ -88,14 +95,17 @@ class MouldKingController extends TrainController {
         // Die exakte 25-Zeichen-Struktur für deinen 4-Port Hub
         cmdStr = "T1440$hA$hB$hC" + "000" + "$hD" + "W";
       }
-      
+
       try {
         await writeCharacteristic!.write([0x01], withoutResponse: true);
-        await writeCharacteristic!.write(utf8.encode(cmdStr), withoutResponse: true);
-      } catch (e) { 
-        break; 
+        await writeCharacteristic!.write(
+          utf8.encode(cmdStr),
+          withoutResponse: true,
+        );
+      } catch (e) {
+        break;
       }
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
     }
   }

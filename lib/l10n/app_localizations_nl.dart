@@ -216,6 +216,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get light => 'Licht';
 
   @override
+  String get smoke => 'Stoom';
+
+  @override
   String get light_b => 'Licht B';
 
   @override
@@ -300,7 +303,13 @@ class AppLocalizationsNl extends AppLocalizations {
   String get port_light => 'Licht';
 
   @override
+  String get port_light_inv => 'Licht (invertered)';
+
+  @override
   String get port_light_dir => 'Licht (richtingsafhankelijk)';
+
+  @override
+  String get port_light_dir_inv => 'Licht (Richtingsafhankelijk, Invertered)';
 
   @override
   String get port_motor => 'Motor';
@@ -309,7 +318,13 @@ class AppLocalizationsNl extends AppLocalizations {
   String get port_motor_inv => 'Motor (omgekeerd)';
 
   @override
+  String get port_smoke => 'Stoom';
+
+  @override
   String get port_none => 'Niets';
+
+  @override
+  String get port_max_brightness => 'Maximale helderheid';
 
   @override
   String get protocol_mk_classic => 'Mould King (Classic / Broadcast)';
@@ -510,4 +525,92 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get workshop_edit_save => 'OPSLAAN';
+
+  @override
+  String get close => 'Sluiten';
+
+  @override
+  String get consist => 'Tractie';
+
+  @override
+  String get consist_dissolve => 'Tractie opheffen (Ontkoppelen)';
+
+  @override
+  String get consist_create => 'Tractie maken (Locomotief koppelen)...';
+
+  @override
+  String get consist_no_candidates =>
+      'Geen andere locomotieven beschikbaar om te koppelen.';
+
+  @override
+  String get consist_couple_title => 'Locomotief koppelen';
+
+  @override
+  String get consist_select_slave => 'Kies een locomotief als slave:';
+
+  @override
+  String get consist_back_to_back => 'Rug aan rug';
+
+  @override
+  String get consist_back_to_back_desc =>
+      'Rijrichting omkeren (bijv. trek-duwtrein)';
+
+  @override
+  String get consist_couple_btn => 'Koppelen';
+
+  @override
+  String get consist_coupled => 'gekoppeld aan';
+
+  @override
+  String get consist_decoupled_single => 'Locomotief ontkoppeld van';
+
+  @override
+  String get consist_decoupled_all => 'Alle locomotieven ontkoppeld van';
+
+  @override
+  String get consist_trim => 'Trimming';
+
+  @override
+  String get consist_trim_title => 'Trimming (snelheidsafstemming)';
+
+  @override
+  String get consist_reversed => '(omgekeerd)';
+
+  @override
+  String get consist_reconnect => 'Opnieuw verbinden';
+
+  @override
+  String get consist_reconnect_failed => 'Verbinding mislukt met';
+
+  @override
+  String get consist_reset_trim => 'Herstellen naar 0%';
+
+  @override
+  String get consist_manage_tooltip => 'Tractie beheren';
+
+  @override
+  String get consist_battery_lowest => 'Laagste batterij in treinverband';
+
+  @override
+  String get battery_level => 'Batterijniveau';
+
+  @override
+  String get tuning_light_fade => 'Licht overgangstijd (Soft-Fade)';
+
+  @override
+  String get tuning_battery_cutoff_title => 'Batterijbescherming (Auto-stop)';
+
+  @override
+  String get tuning_battery_cutoff_subtitle =>
+      'Remt rustig af naar 0 zodra de batterij onder de drempelwaarde zakt. Handmatig doorrijden blijft mogelijk.';
+
+  @override
+  String get tuning_battery_cutoff_disabled => 'Uit (Gedeactiveerd)';
+
+  @override
+  String get tuning_battery_cutoff_recommended => 'Aanbevolen voor LiPo';
+
+  @override
+  String get battery_cutoff_triggered =>
+      'Batterijbescherming: Trein rustig gestopt wegens lage batterij';
 }

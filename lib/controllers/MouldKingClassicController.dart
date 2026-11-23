@@ -31,10 +31,10 @@ class MouldKingClassicController extends TrainController {
   void sendHardwareCommand() {
     if (!isRunning) return;
 
-    int powerA = getPowerForRole(config.portSettings['A'] ?? 'none');
-    int powerB = getPowerForRole(config.portSettings['B'] ?? 'none');
-    int powerC = getPowerForRole(config.portSettings['C'] ?? 'none');
-    int powerD = getPowerForRole(config.portSettings['D'] ?? 'none');
+    int powerA = getPowerForRole(config.portSettings['A'] ?? 'none', 'A');
+    int powerB = getPowerForRole(config.portSettings['B'] ?? 'none', 'B');
+    int powerC = getPowerForRole(config.portSettings['C'] ?? 'none', 'C');
+    int powerD = getPowerForRole(config.portSettings['D'] ?? 'none', 'D');
 
     MouldKingCentral.updateState(
       config.channel ?? 1, 

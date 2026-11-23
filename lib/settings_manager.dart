@@ -29,7 +29,7 @@ class SettingsManager {
   static Future<bool> loadAutoScale() async {
     final prefs = await SharedPreferences.getInstance();
     // WICHTIG: Standardwert ist hier 'true', damit es bei neuen Nutzern direkt aktiv ist!
-    return prefs.getBool(_keyAutoScale) ?? true; 
+    return prefs.getBool(_keyAutoScale) ?? true;
   }
 
   // --- THEME (0=System, 1=Light, 2=Dark) ---
@@ -77,6 +77,6 @@ class SettingsManager {
 
   static Future<String> loadLanguage() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyLang) ?? 'de';
+    return prefs.getString(_keyLang) ?? 'system';
   }
 }

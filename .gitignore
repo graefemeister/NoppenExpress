@@ -37,3 +37,6 @@ local.properties
 # Logs und Temp
 *.log
 .DS_Store
+
+*.apk
+*.aab

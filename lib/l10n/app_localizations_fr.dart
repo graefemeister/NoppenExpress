@@ -216,6 +216,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get light => 'Éclairage';
 
   @override
+  String get smoke => 'Vapeur';
+
+  @override
   String get light_b => 'Éclairage B';
 
   @override
@@ -300,7 +303,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get port_light => 'Éclairage';
 
   @override
+  String get port_light_inv => 'Éclairage (inversé)';
+
+  @override
   String get port_light_dir => 'Éclairage (directionnel)';
+
+  @override
+  String get port_light_dir_inv => 'Éclairage (directionnel, inversé)';
 
   @override
   String get port_motor => 'Moteur';
@@ -309,7 +318,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get port_motor_inv => 'Moteur (inversé)';
 
   @override
+  String get port_smoke => 'Vapeur';
+
+  @override
   String get port_none => 'Aucun';
+
+  @override
+  String get port_max_brightness => 'Luminosité maximale';
 
   @override
   String get protocol_mk_classic => 'Mould King (Classic / Broadcast)';
@@ -511,4 +526,93 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get workshop_edit_save => 'ENREGISTRER';
+
+  @override
+  String get close => 'Fermer';
+
+  @override
+  String get consist => 'Unité multiple';
+
+  @override
+  String get consist_dissolve => 'Dissoudre l\'unité (Découpler)';
+
+  @override
+  String get consist_create => 'Créer unité (Coupler locomotive)...';
+
+  @override
+  String get consist_no_candidates =>
+      'Aucune autre locomotive disponible à coupler.';
+
+  @override
+  String get consist_couple_title => 'Coupler locomotive';
+
+  @override
+  String get consist_select_slave =>
+      'Sélectionnez une locomotive comme esclave :';
+
+  @override
+  String get consist_back_to_back => 'Dos à dos';
+
+  @override
+  String get consist_back_to_back_desc =>
+      'Inverser le sens de marche (ex. rame réversible)';
+
+  @override
+  String get consist_couple_btn => 'Coupler';
+
+  @override
+  String get consist_coupled => 'couplé à';
+
+  @override
+  String get consist_decoupled_single => 'Locomotive découplée de';
+
+  @override
+  String get consist_decoupled_all => 'Toutes les locomotives découplées de';
+
+  @override
+  String get consist_trim => 'Ajustement';
+
+  @override
+  String get consist_trim_title => 'Ajustement (synchronisation vitesse)';
+
+  @override
+  String get consist_reversed => '(inversé)';
+
+  @override
+  String get consist_reconnect => 'Reconnecter';
+
+  @override
+  String get consist_reconnect_failed => 'Échec de connexion à';
+
+  @override
+  String get consist_reset_trim => 'Réinitialiser à 0%';
+
+  @override
+  String get consist_manage_tooltip => 'Gérer l\'unité';
+
+  @override
+  String get consist_battery_lowest => 'Batterie la plus faible de l\'UM';
+
+  @override
+  String get battery_level => 'Niveau de batterie';
+
+  @override
+  String get tuning_light_fade => 'Durée de fondu de la lumière (Soft-Fade)';
+
+  @override
+  String get tuning_battery_cutoff_title => 'Protection batterie (Arrêt auto)';
+
+  @override
+  String get tuning_battery_cutoff_subtitle =>
+      'Ralentit doucement à 0 lorsque la batterie passe sous le seuil. La conduite manuelle reste possible.';
+
+  @override
+  String get tuning_battery_cutoff_disabled => 'Désactivé';
+
+  @override
+  String get tuning_battery_cutoff_recommended => 'Recommandé pour LiPo';
+
+  @override
+  String get battery_cutoff_triggered =>
+      'Protection batterie : Train arrêté en douceur en raison d\'une batterie faible';
 }

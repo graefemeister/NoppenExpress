@@ -216,6 +216,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get light => 'Licht';
 
   @override
+  String get smoke => 'Dampf';
+
+  @override
   String get light_b => 'Licht B';
 
   @override
@@ -299,7 +302,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get port_light => 'Licht';
 
   @override
+  String get port_light_inv => 'Licht (Invertiert)';
+
+  @override
   String get port_light_dir => 'Licht (Richtungsabhängig)';
+
+  @override
+  String get port_light_dir_inv => 'Licht (Richtungsabhängig, Invertiert)';
 
   @override
   String get port_motor => 'Motor';
@@ -308,7 +317,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get port_motor_inv => 'Motor (Invertiert)';
 
   @override
+  String get port_smoke => 'Dampf';
+
+  @override
   String get port_none => 'Nichts';
+
+  @override
+  String get port_max_brightness => 'Maximale Helligkeit';
 
   @override
   String get protocol_mk_classic => 'Mould King (Classic / Broadcast)';
@@ -509,4 +524,92 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get workshop_edit_save => 'SPEICHERN';
+
+  @override
+  String get close => 'Schließen';
+
+  @override
+  String get consist => 'Traktion';
+
+  @override
+  String get consist_dissolve => 'Traktion auflösen (Entkoppeln)';
+
+  @override
+  String get consist_create => 'Traktion bilden (Lok ankoppeln)...';
+
+  @override
+  String get consist_no_candidates =>
+      'Keine weiteren Loks zum Ankoppeln verfügbar.';
+
+  @override
+  String get consist_couple_title => 'Lok ankoppeln';
+
+  @override
+  String get consist_select_slave => 'Wähle eine Lokomotive als Slave aus:';
+
+  @override
+  String get consist_back_to_back => 'Rücken an Rücken';
+
+  @override
+  String get consist_back_to_back_desc =>
+      'Fahrtrichtung umkehren (z.B. Wendezug)';
+
+  @override
+  String get consist_couple_btn => 'Ankoppeln';
+
+  @override
+  String get consist_coupled => 'angekoppelt an';
+
+  @override
+  String get consist_decoupled_single => 'Lok entkoppelt von';
+
+  @override
+  String get consist_decoupled_all => 'Alle Loks entkoppelt von';
+
+  @override
+  String get consist_trim => 'Trimmung';
+
+  @override
+  String get consist_trim_title => 'Trimmung (Geschwindigkeitsabgleich)';
+
+  @override
+  String get consist_reversed => '(gedreht)';
+
+  @override
+  String get consist_reconnect => 'Neu verbinden';
+
+  @override
+  String get consist_reconnect_failed => 'Verbindung fehlgeschlagen zu';
+
+  @override
+  String get consist_reset_trim => 'Auf 0% zurücksetzen';
+
+  @override
+  String get consist_manage_tooltip => 'Traktion verwalten';
+
+  @override
+  String get consist_battery_lowest => 'Niedrigster Akkustand im Verbund';
+
+  @override
+  String get battery_level => 'Akkustand';
+
+  @override
+  String get tuning_light_fade => 'Licht-Aufblendzeit (Soft-Fade)';
+
+  @override
+  String get tuning_battery_cutoff_title => 'Akkuschutz (Auto-Stopp)';
+
+  @override
+  String get tuning_battery_cutoff_subtitle =>
+      'Bremst die Lok sanft auf 0 ab (Ramping), sobald der Akkustand unter den Schwellwert fällt. Ein manuelles Weiterfahren bleibt möglich.';
+
+  @override
+  String get tuning_battery_cutoff_disabled => 'Aus (Deaktiviert)';
+
+  @override
+  String get tuning_battery_cutoff_recommended => 'Empfohlen für LiPos';
+
+  @override
+  String get battery_cutoff_triggered =>
+      'Akkuschutz: Lok wurde wegen schwachem Akku sanft angehalten';
 }

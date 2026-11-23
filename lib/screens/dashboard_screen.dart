@@ -27,8 +27,6 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> with TickerProviderStateMixin {
-  bool _permissionsGranted = false;
-  bool _isLoading = true;
   List<TrainController> _lokListe = [];
   TrainController? _selectedTrain;
   
@@ -71,20 +69,37 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     if (Platform.isAndroid) {
       await [Permission.bluetoothScan, Permission.bluetoothAdvertise, Permission.bluetoothConnect, Permission.location].request();
     }
-    setState(() { _permissionsGranted = true; });
+  }
+
+  void _syncCoupledControllers() {
+    for (var master in _lokListe) {
+      master.coupledControllers = master.config.coupledUnits
+          .map((unit) => _lokListe.where((c) => c.config.id == unit.locoId).firstOrNull)
+          .whereType<TrainController>()
+          .toList();
+    }
+  }
+
+  Set<String> get _activeSlaveIds {
+    return _lokListe
+        .expand((loco) => loco.config.coupledUnits.map((u) => u.locoId))
+        .toSet();
+  }
+
+  List<TrainController> get _visibleTrainList {
+    final slaves = _activeSlaveIds;
+    return _lokListe.where((loco) => !slaves.contains(loco.config.id)).toList();
   }
 
   Future<void> _loadTrains() async {
-    setState(() => _isLoading = true);
     final loaded = await TrainManager.loadTrains();
     for (var train in loaded) {
       _attachTrainListener(train);
     }
-    setState(() {
-      _lokListe = loaded;
-      _isLoading = false;
-    });
-    HandsetManager.instance.updateTrains(_lokListe);
+    _lokListe = loaded;
+    _syncCoupledControllers();
+    setState(() {});
+    HandsetManager.instance.updateTrains(_visibleTrainList);
   }
 
   void _attachTrainListener(TrainController train) {
@@ -95,7 +110,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           if (!train.isRunning && _selectedTrain == train) {
             // Wir suchen die erste andere Lok in der Liste, die noch läuft
             try {
-              _selectedTrain = _lokListe.firstWhere(
+              _selectedTrain = _visibleTrainList.firstWhere(
                 (t) => t.isRunning && t != train
               );
               // Optional: Ein kurzer Hinweis, dass gewechselt wurde
@@ -111,7 +126,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         });
 
         // --- NEU: Trigger für die LEGO-Fernbedienung ---
-        HandsetManager.instance.updateTrains(_lokListe);
+        HandsetManager.instance.updateTrains(_visibleTrainList);
         // ------------------------------------------------
 
         _updateSmartWakelock();
@@ -175,7 +190,8 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         }
       });
       
-      HandsetManager.instance.updateTrains(_lokListe);
+      _syncCoupledControllers();
+      HandsetManager.instance.updateTrains(_visibleTrainList);
       await TrainManager.saveTrains(_lokListe);
     }
   }
@@ -206,8 +222,6 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         if (t.config.imagePath.isNotEmpty) {
           final imageFile = File(t.config.imagePath);
           if (!imageFile.existsSync()) {
-            // Wenn die Datei auf diesem Gerät fehlt: Pfad leeren.
-            // (Nutzt unsere neue Flexibilität aus dem TrainController)
             t.config.imagePath = ''; 
             print("Import-Info: Bild für '${t.name}' nicht gefunden. Pfad wurde bereinigt.");
           }
@@ -219,7 +233,8 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       setState(() { 
         _lokListe.addAll(imported); 
       });
-      HandsetManager.instance.updateTrains(_lokListe);
+      _syncCoupledControllers();
+      HandsetManager.instance.updateTrains(_visibleTrainList);
       await TrainManager.saveTrains(_lokListe);
     }
   }
@@ -232,8 +247,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(context.l10n.delete, style: const TextStyle(color: Colors.red)))
       ]));
     if (confirm == true) {
+      // Wenn die Lok woanders als Slave eingetragen war, bereinigen
+      for (var other in _lokListe) {
+        other.config.coupledUnits.removeWhere((u) => u.locoId == train.config.id);
+      }
       setState(() { _lokListe.remove(train); if (_selectedTrain == train) _selectedTrain = null; });
-      HandsetManager.instance.updateTrains(_lokListe);
+      _syncCoupledControllers();
+      HandsetManager.instance.updateTrains(_visibleTrainList);
       await TrainManager.saveTrains(_lokListe);
     }
   }
@@ -246,12 +266,191 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(leading: const Icon(Icons.edit), title: Text(context.l10n.edit), onTap: () { Navigator.pop(ctx); _openWorkshop(trainToEdit: train); }),
-            ListTile(leading: const Icon(Icons.delete, color: Colors.red), title: Text(context.l10n.delete, style: const TextStyle(color: Colors.red)), onTap: () { Navigator.pop(ctx); _deleteTrain(train); }),
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: Text(context.l10n.edit),
+              onTap: () {
+                Navigator.pop(ctx);
+                _openWorkshop(trainToEdit: train);
+              },
+            ),
+            if (train.isConsistMaster)
+              ListTile(
+                leading: const Icon(Icons.link_off, color: Colors.orange),
+                title: Text(context.l10n.consist_dissolve),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _decoupleAll(train);
+                },
+              )
+            else
+              ListTile(
+                leading: const Icon(Icons.link, color: Colors.blueAccent),
+                title: Text(context.l10n.consist_create),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showCoupleDialog(train);
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: Text(context.l10n.delete, style: const TextStyle(color: Colors.red)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _deleteTrain(train);
+              },
+            ),
           ],
         ),
       ),
     );
+  }
+
+  void _showCoupleDialog(TrainController master) async {
+    final activeSlaves = _activeSlaveIds;
+    final candidates = _lokListe.where((t) =>
+      t.config.id != master.config.id &&
+      !activeSlaves.contains(t.config.id) &&
+      t.config.coupledUnits.isEmpty
+    ).toList();
+
+    if (candidates.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.consist_no_candidates)),
+      );
+      return;
+    }
+
+    String selectedSlaveId = candidates.first.config.id;
+    bool isReversed = false;
+
+    bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.link, color: Colors.blueAccent),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  context.l10n.consist_couple_title,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(context.l10n.consist_select_slave),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: selectedSlaveId,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+                items: candidates.map((t) => DropdownMenuItem(
+                  value: t.config.id,
+                  child: Text(t.name),
+                )).toList(),
+                onChanged: (val) {
+                  if (val != null) setDialogState(() => selectedSlaveId = val);
+                },
+              ),
+              const SizedBox(height: 16),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(context.l10n.consist_back_to_back),
+                subtitle: Text(context.l10n.consist_back_to_back_desc),
+                value: isReversed,
+                onChanged: (val) => setDialogState(() => isReversed = val ?? false),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(context.l10n.cancel),
+            ),
+            FilledButton.icon(
+              icon: const Icon(Icons.link),
+              label: Text(context.l10n.consist_couple_btn),
+              onPressed: () => Navigator.pop(ctx, true),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed == true) {
+      final slave = _lokListe.firstWhere((t) => t.config.id == selectedSlaveId);
+      master.emergencyStop();
+      slave.emergencyStop();
+
+      master.config.coupledUnits.add(
+        CoupledUnit(locoId: selectedSlaveId, isReversed: isReversed),
+      );
+      if (_selectedTrain?.config.id == selectedSlaveId) {
+        _selectedTrain = master;
+      }
+      _syncCoupledControllers();
+      HandsetManager.instance.updateTrains(_visibleTrainList);
+      await TrainManager.saveTrains(_lokListe);
+      setState(() {});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${slave.name} ${context.l10n.consist_coupled} ${master.name}!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+
+  void _decoupleSlave(TrainController master, String slaveId) async {
+    final slave = _lokListe.where((t) => t.config.id == slaveId).firstOrNull;
+    if (slave != null) {
+      slave.emergencyStop();
+    }
+    master.config.coupledUnits.removeWhere((u) => u.locoId == slaveId);
+    _syncCoupledControllers();
+    HandsetManager.instance.updateTrains(_visibleTrainList);
+    await TrainManager.saveTrains(_lokListe);
+    setState(() {});
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${context.l10n.consist_decoupled_single} ${master.name}.'),
+          backgroundColor: Colors.orange.shade800,
+        ),
+      );
+    }
+  }
+
+  void _decoupleAll(TrainController master) async {
+    for (final unit in master.config.coupledUnits) {
+      final slave = _lokListe.where((t) => t.config.id == unit.locoId).firstOrNull;
+      if (slave != null) {
+        slave.emergencyStop();
+      }
+    }
+    master.config.coupledUnits.clear();
+    _syncCoupledControllers();
+    HandsetManager.instance.updateTrains(_visibleTrainList);
+    await TrainManager.saveTrains(_lokListe);
+    setState(() {});
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${context.l10n.consist_decoupled_all} ${master.name}.'),
+          backgroundColor: Colors.orange.shade800,
+        ),
+      );
+    }
   }
 
   Future<void> _updateSmartWakelock() async {
@@ -324,8 +523,8 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   }
 
   Widget _buildActiveTrainBar() {
-    // Nur Loks anzeigen, die gerade verbunden/online sind
-    final activeTrains = _lokListe.where((t) => t.isRunning).toList();
+    // Nur sichtbare Loks (keine Slaves) anzeigen, die gerade verbunden/online sind
+    final activeTrains = _visibleTrainList.where((t) => t.isRunning).toList();
 
     if (activeTrains.length < 2) return const SizedBox.shrink();
 
@@ -437,7 +636,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    final sortedList = List<TrainController>.from(_lokListe)..sort((a, b) {
+    final sortedList = List<TrainController>.from(_visibleTrainList)..sort((a, b) {
       if (a.isRunning != b.isRunning) return a.isRunning ? -1 : 1;
       return a.name.toLowerCase().compareTo(b.name.toLowerCase());
     });
@@ -487,6 +686,19 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                           ),
                           const SizedBox(width: 6),
                           Text(train.isRunning ? context.l10n.online : context.l10n.offline, style: const TextStyle(fontSize: 11)),
+                          if (train.isConsistMaster) ...[
+                            const SizedBox(width: 8),
+                            const Icon(Icons.link, size: 14, color: Colors.blueAccent),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${context.l10n.consist} (${train.config.coupledUnits.length + 1})',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.blueAccent,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       selected: _selectedTrain == train,
@@ -506,6 +718,9 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 key: ValueKey(_selectedTrain!.config.id),
                 train: _selectedTrain!,
                 onStateChanged: () => setState(() {}),
+                onCouple: () => _showCoupleDialog(_selectedTrain!),
+                onDecouple: (slaveId) => _decoupleSlave(_selectedTrain!, slaveId),
+                onSave: () => TrainManager.saveTrains(_lokListe),
               );
 
         Widget controlPart = isPortrait

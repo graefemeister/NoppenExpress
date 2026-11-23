@@ -1,17 +1,22 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../controllers/controllers.dart';
-import '../controllers/train_controller.dart';
 import 'package:noppenexpress_ble/l10n/l10n_extension.dart';
 
 class TrainControlPanel extends StatefulWidget {
   final TrainController train;
   final VoidCallback onStateChanged;
+  final VoidCallback? onCouple;
+  final ValueChanged<String>? onDecouple;
+  final VoidCallback? onSave;
 
   const TrainControlPanel({
     super.key,
     required this.train,
     required this.onStateChanged,
+    this.onCouple,
+    this.onDecouple,
+    this.onSave,
   });
 
   @override
@@ -20,6 +25,53 @@ class TrainControlPanel extends StatefulWidget {
 
 class _TrainControlPanelState extends State<TrainControlPanel> {
   bool _isConnecting = false;
+  bool _showTrimControls = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupBatteryWarningListener(widget.train);
+  }
+
+  @override
+  void didUpdateWidget(covariant TrainControlPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.train != widget.train) {
+      oldWidget.train.onLowBatteryWarning = null;
+      _setupBatteryWarningListener(widget.train);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.train.onLowBatteryWarning = null;
+    super.dispose();
+  }
+
+  void _setupBatteryWarningListener(TrainController train) {
+    train.onLowBatteryWarning = (locoName, level) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red.shade800,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 5),
+          content: Row(
+            children: [
+              const Icon(Icons.battery_alert, color: Colors.white),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "${context.l10n.battery_cutoff_triggered} ($locoName: $level%)",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    };
+  }
 
   void _updateSpeed(int delta) {
     if (!widget.train.isRunning) return;
@@ -66,14 +118,30 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
   }
 
   Future<void> _toggleConnection() async {
-    if (widget.train.isRunning) {
-      widget.train.emergencyStop();
-      await Future.delayed(const Duration(milliseconds: 300));
-      await widget.train.disconnect();
+    final master = widget.train;
+    final slaves = master.coupledControllers;
+
+    if (master.isRunning) {
+      master.emergencyStop();
+      for (final s in slaves) {
+        s.emergencyStop();
+        await s.disconnect();
+      }
+      await Future.delayed(const Duration(milliseconds: 200));
+      await master.disconnect();
     } else {
       setState(() => _isConnecting = true);
       try {
-        await widget.train.connectAndInitialize();
+        await master.connectAndInitialize();
+        for (final s in slaves) {
+          if (!s.isRunning) {
+            try {
+              await s.connectAndInitialize();
+            } catch (e) {
+              debugPrint("Slave ${s.name} Verbindungsfehler: $e");
+            }
+          }
+        }
       } catch (e) {
         debugPrint("Verbindungsfehler: $e");
       }
@@ -118,38 +186,77 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
     final config = widget.train.config;
     final isConnected = widget.train.isRunning;
     final isManual = config.isManualMode;
-    final bool isLego = config.protocol == 'lego_hub';
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16.0, 3.0, 16.0, 24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 8.0,
-            ),
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16.0, 3.0, 16.0, 24.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  widget.train.name,
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  _getProtocolDisplayName(config.protocol),
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withOpacity(0.7),
-                    letterSpacing: 0.5,
-                  ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.train.name,
+                            style: const TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            _getProtocolDisplayName(config.protocol),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.7),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (widget.onCouple != null)
+                          IconButton(
+                            icon: Icon(
+                              widget.train.isConsistMaster
+                                  ? Icons.link
+                                  : Icons.add_link,
+                              color: widget.train.isConsistMaster
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.outline,
+                            ),
+                            tooltip: widget.train.isConsistMaster
+                                ? context.l10n.consist_manage_tooltip
+                                : context.l10n.consist_create,
+                            onPressed: widget.onCouple,
+                          ),
+                        if (widget.train.effectiveBatteryLevel != null) ...[
+                          const SizedBox(height: 2),
+                          _buildBatteryIndicator(context),
+                        ],
+                      ],
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: 16),
@@ -199,8 +306,12 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
                           : Icon(isConnected ? Icons.link_off : Icons.link),
                       label: Text(
                         isConnected
-                            ? context.l10n.disconnect
-                            : context.l10n.connect,
+                            ? (widget.train.isConsistMaster
+                                ? "${context.l10n.disconnect} (${widget.train.coupledControllers.length + 1})"
+                                : context.l10n.disconnect)
+                            : (widget.train.isConsistMaster
+                                ? "${context.l10n.connect} (${widget.train.coupledControllers.length + 1})"
+                                : context.l10n.connect),
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -395,6 +506,11 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
             ],
           ),
 
+          if (widget.train.isConsistMaster) ...[
+            const SizedBox(height: 20),
+            _buildConsistBar(context),
+          ],
+
           if (config.notes.isNotEmpty) ...[
             const SizedBox(height: 32),
             Container(
@@ -440,6 +556,11 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
           const SizedBox(height: 80),
         ],
       ),
+    ),
+    ),
+    if (widget.train.isConsistMaster && _showTrimControls)
+      _buildTrimBottomBar(context),
+    ],
     );
   }
 
@@ -450,9 +571,10 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
         label: Text(context.l10n.light),
         selected: widget.train.isLightOn, // GEFIXT: Neue Status-Variable
         onSelected: isConnected
-            ? (_) {
-                widget.train.toggleLight();
+            ? (bool val) {
+                widget.train.toggleLight(val);
                 setState(() {});
+                widget.onStateChanged();
               }
             : null,
       ),
@@ -524,40 +646,83 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
     bool isConnected,
     Map<String, String> portSettings,
   ) {
-    final bool hasLightPort = portSettings.values.any(
-      (role) => role.contains('light'),
-    );
+    final lightPorts = portSettings.entries
+        .where((entry) => entry.value.contains('light'))
+        .toList();
+    lightPorts.sort((a, b) => a.key.compareTo(b.key));
+
     final bool hasDoorPort = portSettings.values.any((role) => role == 'door');
 
-    return [
-      if (hasLightPort)
+    final List<Widget> controls = [];
+
+    if (lightPorts.length == 1) {
+      final portKey = lightPorts.first.key;
+      final bool isPortOn = widget.train.isPortLightOn(portKey);
+      controls.add(
         FilterChip(
           showCheckmark: false,
-          selected: widget.train.isLightOn,
+          selected: isPortOn,
           selectedColor: Colors.yellow.shade600,
           avatar: Icon(
-            widget.train.isLightOn ? Icons.lightbulb : Icons.lightbulb_outline,
-            color: widget.train.isLightOn ? Colors.black87 : Colors.blueGrey,
+            isPortOn ? Icons.lightbulb : Icons.lightbulb_outline,
+            color: isPortOn ? Colors.black87 : Colors.blueGrey,
             size: 18,
           ),
           label: Text(
             context.l10n.light,
             style: TextStyle(
-              color: widget.train.isLightOn ? Colors.black87 : null,
-              fontWeight: widget.train.isLightOn
+              color: isPortOn ? Colors.black87 : null,
+              fontWeight: isPortOn
                   ? FontWeight.bold
                   : FontWeight.normal,
             ),
           ),
           onSelected: isConnected
-              ? (_) {
-                  widget.train.toggleLight();
+              ? (bool val) {
+                  widget.train.togglePortLight(portKey, val);
                   setState(() {});
+                  widget.onStateChanged();
                 }
               : null,
         ),
+      );
+    } else if (lightPorts.length > 1) {
+      for (final entry in lightPorts) {
+        final portKey = entry.key;
+        final bool isPortOn = widget.train.isPortLightOn(portKey);
+        controls.add(
+          FilterChip(
+            showCheckmark: false,
+            selected: isPortOn,
+            selectedColor: Colors.yellow.shade600,
+            avatar: Icon(
+              isPortOn ? Icons.lightbulb : Icons.lightbulb_outline,
+              color: isPortOn ? Colors.black87 : Colors.blueGrey,
+              size: 18,
+            ),
+            label: Text(
+              "${context.l10n.light} $portKey",
+              style: TextStyle(
+                color: isPortOn ? Colors.black87 : null,
+                fontWeight: isPortOn
+                    ? FontWeight.bold
+                    : FontWeight.normal,
+              ),
+            ),
+            onSelected: isConnected
+                ? (bool val) {
+                    widget.train.togglePortLight(portKey, val);
+                    setState(() {});
+                    widget.onStateChanged();
+                  }
+                : null,
+          ),
+        );
+      }
+    }
 
-      if (hasDoorPort)
+    if (hasDoorPort) {
+      controls.add(
         FilterChip(
           showCheckmark: false,
           selected: widget.train.isDoorActive,
@@ -585,7 +750,62 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
                 }
               : null,
         ),
-    ];
+      );
+    }
+
+    return controls;
+  }
+
+  Widget _buildBatteryIndicator(BuildContext context) {
+    final level = widget.train.effectiveBatteryLevel!;
+    final Color color = level < 20
+        ? Colors.red.shade600
+        : (level < 40 ? Colors.orange.shade700 : Colors.green.shade600);
+    final IconData icon = level <= 15
+        ? Icons.battery_alert
+        : (level <= 30
+            ? Icons.battery_2_bar
+            : (level <= 60
+                ? Icons.battery_4_bar
+                : (level <= 85 ? Icons.battery_6_bar : Icons.battery_full)));
+
+    String tooltip = "${context.l10n.battery_level}: $level%";
+    if (widget.train.isConsistMaster && widget.train.coupledControllers.isNotEmpty) {
+      final list = [
+        "${widget.train.name}: ${widget.train.batteryLevel != null ? '${widget.train.batteryLevel}%' : '-'}",
+        ...widget.train.coupledControllers.map(
+          (s) => "${s.name}: ${s.batteryLevel != null ? '${s.batteryLevel}%' : '-'}",
+        ),
+      ];
+      tooltip = "${context.l10n.consist_battery_lowest} ($level%)\n${list.join('\n')}";
+    }
+
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Text(
+              "$level%",
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildActionChip({
@@ -737,6 +957,416 @@ class _TrainControlPanelState extends State<TrainControlPanel> {
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildConsistBar(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.alt_route,
+                size: 16,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  context.l10n.consist,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 6),
+              InkWell(
+                onTap: () {
+                  setState(() => _showTrimControls = !_showTrimControls);
+                },
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.tune,
+                        size: 14,
+                        color: _showTrimControls
+                            ? Colors.orange.shade700
+                            : theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        context.l10n.consist_trim,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: _showTrimControls
+                              ? Colors.orange.shade700
+                              : theme.colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (widget.onCouple != null) ...[
+                const SizedBox(width: 6),
+                InkWell(
+                  onTap: widget.onCouple,
+                  borderRadius: BorderRadius.circular(4),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add, size: 14, color: theme.colorScheme.primary),
+                        const SizedBox(width: 2),
+                        Text(
+                          context.l10n.consist_couple_btn,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: widget.train.config.coupledUnits.map((unit) {
+              final slave = widget.train.coupledControllers
+                  .where((c) => c.config.id == unit.locoId)
+                  .firstOrNull;
+              return _buildConsistPill(context, unit, slave);
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConsistPill(BuildContext context, CoupledUnit unit, TrainController? slave) {
+    final name = slave?.name ?? unit.locoId;
+    final isOnline = slave?.isRunning ?? false;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isOnline ? Colors.green.shade600 : Colors.grey.shade400,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isOnline ? Colors.green : Colors.red.shade400,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Icon(
+            unit.isReversed ? Icons.swap_horiz : Icons.arrow_forward,
+            size: 14,
+            color: unit.isReversed ? Colors.orange.shade700 : Colors.blue.shade700,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            name,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+          if (unit.isReversed) ...[
+            const SizedBox(width: 4),
+            Text(
+              context.l10n.consist_reversed,
+              style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+            ),
+          ],
+          if (unit.trim != 0) ...[
+            const SizedBox(width: 4),
+            Text(
+              "(${unit.trim > 0 ? '+' : ''}${unit.trim}%)",
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: unit.trim > 0
+                    ? Colors.green.shade700
+                    : Colors.orange.shade800,
+              ),
+            ),
+          ],
+          if (slave != null && !isOnline) ...[
+            const SizedBox(width: 2),
+            IconButton(
+              icon: const Icon(Icons.refresh, size: 15),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              tooltip: context.l10n.consist_reconnect,
+              onPressed: () async {
+                try {
+                  await slave.connectAndInitialize();
+                } catch (e) {
+                  debugPrint("Verbindungsfehler für $name: $e");
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("${context.l10n.consist_reconnect_failed} '$name': $e"),
+                        backgroundColor: Colors.red.shade800,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                }
+                if (mounted) {
+                  setState(() {});
+                  widget.onStateChanged();
+                }
+              },
+            ),
+          ],
+          if (widget.onDecouple != null) ...[
+            const SizedBox(width: 6),
+            InkWell(
+              onTap: () => widget.onDecouple?.call(unit.locoId),
+              borderRadius: BorderRadius.circular(10),
+              child: const Padding(
+                padding: EdgeInsets.all(2.0),
+                child: Icon(Icons.close, size: 14, color: Colors.grey),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrimBottomBar(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            offset: const Offset(0, -2),
+            blurRadius: 6,
+          ),
+        ],
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        border: Border(
+          top: BorderSide(
+            color: theme.colorScheme.primary.withOpacity(0.3),
+            width: 1.5,
+          ),
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.tune, size: 18, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  context.l10n.consist_trim_title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                tooltip: context.l10n.close,
+                onPressed: () {
+                  setState(() => _showTrimControls = false);
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          ...widget.train.config.coupledUnits.map((unit) {
+            final slave = widget.train.coupledControllers
+                .where((c) => c.config.id == unit.locoId)
+                .firstOrNull;
+            final slaveName = slave?.name ?? unit.locoId;
+            final int trim = unit.trim;
+            final String sign = trim > 0 ? "+" : "";
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.train,
+                              size: 14,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                slaveName,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: trim == 0
+                              ? Colors.grey.withOpacity(0.15)
+                              : (trim > 0 ? Colors.green.withOpacity(0.2) : Colors.orange.withOpacity(0.2)),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          "$sign$trim %",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: trim == 0
+                                ? theme.colorScheme.onSurfaceVariant
+                                : (trim > 0 ? Colors.green.shade700 : Colors.orange.shade800),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.remove, size: 16),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        tooltip: "-5%",
+                        onPressed: () {
+                          setState(() {
+                            unit.trim = (unit.trim - 5).clamp(-50, 50);
+                          });
+                          widget.train.reapplyConsistSpeed();
+                          widget.onSave?.call();
+                        },
+                      ),
+                      const SizedBox(width: 4),
+                      const Text(
+                        "-50%",
+                        style: TextStyle(fontSize: 10, color: Colors.grey),
+                      ),
+                      Expanded(
+                        child: Slider(
+                          value: unit.trim.toDouble(),
+                          min: -50.0,
+                          max: 50.0,
+                          divisions: 100,
+                          label: "$sign${unit.trim}%",
+                          onChanged: (val) {
+                            setState(() {
+                              unit.trim = val.round();
+                            });
+                            widget.train.reapplyConsistSpeed();
+                          },
+                          onChangeEnd: (_) {
+                            widget.onSave?.call();
+                          },
+                        ),
+                      ),
+                      const Text(
+                        "+50%",
+                        style: TextStyle(fontSize: 10, color: Colors.grey),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(Icons.add, size: 16),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        tooltip: "+5%",
+                        onPressed: () {
+                          setState(() {
+                            unit.trim = (unit.trim + 5).clamp(-50, 50);
+                          });
+                          widget.train.reapplyConsistSpeed();
+                          widget.onSave?.call();
+                        },
+                      ),
+                      if (trim != 0) ...[
+                        const SizedBox(width: 6),
+                        IconButton(
+                          icon: const Icon(Icons.restart_alt, size: 18),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          tooltip: context.l10n.consist_reset_trim,
+                          onPressed: () {
+                            setState(() {
+                              unit.trim = 0;
+                            });
+                            widget.train.reapplyConsistSpeed();
+                            widget.onSave?.call();
+                          },
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
       ),
     );
   }

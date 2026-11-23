@@ -102,8 +102,8 @@ class PFxBrickController extends TrainController {
   void sendHardwareCommand() {
     if (!isRunning || writeCharacteristic == null) return;
 
-    int targetA = getPowerForRole(config.portSettings['A'] ?? 'none');
-    int targetB = getPowerForRole(config.portSettings['B'] ?? 'none');
+    int targetA = getPowerForRole(config.portSettings['A'] ?? 'none', 'A');
+    int targetB = getPowerForRole(config.portSettings['B'] ?? 'none', 'B');
 
     if (targetA != _lastSentPowerA) {
       _enqueueMotorCommand(1, targetA);

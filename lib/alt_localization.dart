@@ -1,18 +1,17 @@
-
-import 'package:flutter/material.dart';
-
 class L10n {
-  static String lang = 'de'; 
+  static String lang = 'de';
 
   static final Map<String, Map<String, String>> _values = {
     'de': {
       'about': 'Über',
-      'about_credits_text': 'Besonderer Dank geht an J0EK3R (Ivan Murvai)\nfür das Reverse Engineering des Mould King 4.0/6.0 Protokolls.',
+      'about_credits_text':
+          'Besonderer Dank geht an J0EK3R (Ivan Murvai)\nfür das Reverse Engineering des Mould King 4.0/6.0 Protokolls.',
       'about_credits_title': 'Danksagung & Credits:',
-      'about_description': 'Ein freies Hobbyprojekt für Klemmbausteinfreunde.\n\n'
-                           'Lizenziert unter GNU GPL v3.\n\n'
-                           'Es besteht keine Verbindung zu den genannten Herstellern. Sämtliche Markennamen dienen ausschließlich der Beschreibung der technischen Kompatibilität und Interoperabilität.\n\n'
-                           'Die Bereitstellung erfolgt „wie besehen“ (as-is) ohne jegliche Gewährleistung oder Haftung für Schäden an der verwendeten Hardware (z. B. Hubs, Motoren, Fernbedienungen).',      
+      'about_description':
+          'Ein freies Hobbyprojekt für Klemmbausteinfreunde.\n\n'
+          'Lizenziert unter GNU GPL v3.\n\n'
+          'Es besteht keine Verbindung zu den genannten Herstellern. Sämtliche Markennamen dienen ausschließlich der Beschreibung der technischen Kompatibilität und Interoperabilität.\n\n'
+          'Die Bereitstellung erfolgt „wie besehen“ (as-is) ohne jegliche Gewährleistung oder Haftung für Schäden an der verwendeten Hardware (z. B. Hubs, Motoren, Fernbedienungen).',
       'about_github_btn': 'Quellcode auf GitHub',
       'accessories': 'Zubehör:',
       'actual': 'IST',
@@ -25,12 +24,14 @@ class L10n {
       'btn_save': 'Speichern',
       'btn_start_scan': 'HUBS FINDEN',
       'buwizz_power_title': 'BuWizz Leistungsmodus',
-      'buwizz_power_subtitle': 'Wird erst mit neuer Verbindung wirksam.\nAchtung: Höhere Spannungen auf eigene Gefahr nutzen!',
+      'buwizz_power_subtitle':
+          'Wird erst mit neuer Verbindung wirksam.\nAchtung: Höhere Spannungen auf eigene Gefahr nutzen!',
       'buwizz_power_slow': 'Slow (ca. 5,2V)',
       'buwizz_power_normal': 'Normal (ca. 7,2V - Standard)',
       'buwizz_power_fast': 'Fast (ca. 9,2V)',
       'buwizz_power_ludicrous': 'Ludicrous (ca. 11,2V)',
-      'buwizz_power_warning': 'Erhöhte Spannung kann Überhitzung führen und Standard-Motoren zerstören.',
+      'buwizz_power_warning':
+          'Erhöhte Spannung kann Überhitzung führen und Standard-Motoren zerstören.',
       'cancel': 'Abbrechen',
       'channel': 'Kanal',
       'choose_picture': 'Bild auswählen',
@@ -46,7 +47,8 @@ class L10n {
       'diagnosis': 'Diagnose',
       'disconnect': 'TRENNEN',
       'display_always_on': 'Display immer an',
-      'display_always_on_desc': 'Display bleibt nur dauerhaft an, solange mindestens eine Lok verbunden ist.',
+      'display_always_on_desc':
+          'Display bleibt nur dauerhaft an, solange mindestens eine Lok verbunden ist.',
       'edit': 'Bearbeiten',
       'export': 'Backup Export',
       'fanfare': 'Fanfare',
@@ -69,7 +71,6 @@ class L10n {
       'label_name': 'Name der Lok',
       'label_notes': 'Notizen',
       'label_photo': 'Foto wählen',
-      'label_protocol': 'Protokoll',
       'label_protocol': 'Protokoll / Hub-Typ',
       'lang_changed': 'Sprache geändert',
       'light': 'Licht',
@@ -77,7 +78,8 @@ class L10n {
       'light_c': 'Licht C',
       'list': 'Lokliste',
       'mould_king_classic': 'Mould King Classic (4.0)',
-      'mould_king_classic_desc': 'Broadcast-Steuerung für ältere 4.0 Hubs (Dino)',
+      'mould_king_classic_desc':
+          'Broadcast-Steuerung für ältere 4.0 Hubs (Dino)',
       'msg_incomplete': 'Bitte Protokoll auswählen und ggf. MAC eintragen!',
       'msg_scan_error': 'Scan-Fehler',
       'new_action': 'Neue PFx-Action',
@@ -92,28 +94,31 @@ class L10n {
       'panel_mode_manual': 'Manuell (+/-)',
       'panel_profile_1': 'Profil I (Solo)',
       'panel_profile_2': 'Profil II (Last)',
-      'pfx_button_1': 'Roter Knopf Links', 
-      'pfx_button_2': 'Roter Knopf Rechts', 
-      'pfx_button_3': 'Linkes Rad hoch', 
-      'pfx_button_4': 'Linkes Rad runter', 
-      'pfx_button_5': 'Rechtes Rad hoch', 
-      'pfx_button_6': 'Rechtes Rad runter', 
+      'pfx_button_1': 'Roter Knopf Links',
+      'pfx_button_2': 'Roter Knopf Rechts',
+      'pfx_button_3': 'Linkes Rad hoch',
+      'pfx_button_4': 'Linkes Rad runter',
+      'pfx_button_5': 'Rechtes Rad hoch',
+      'pfx_button_6': 'Rechtes Rad runter',
       'port_door': 'Tür (Wechsel-Polung)',
       'port_light': 'Licht',
       'port_light_dir': 'Licht (Richtungsabhängig)',
       'port_motor': 'Motor',
       'port_motor_inv': 'Motor (Invertiert)',
       'port_none': 'Nichts',
+      'port_max_brightness': 'Maximale Helligkeit',
       'protocol_mk_classic': 'Mould King (Classic / Broadcast)',
       'protocol_mk_modern': 'Mould King (Modern / BLE)',
       'readme': 'Anleitung',
       'readme_error': 'Fehler: readme.txt konnte nicht geladen werden.',
-      'scan_not_required': 'Broadcast-Modus: Für diesen Hub ist kein Scan oder Koppeln nötig.',
+      'scan_not_required':
+          'Broadcast-Modus: Für diesen Hub ist kein Scan oder Koppeln nötig.',
       'scan_running': 'Suche läuft...',
       'select_train': 'Bitte wähle eine Lok aus der Liste aus',
       'settings': 'Einstellungen',
       'settings_bg_mode': 'Hosentaschen-Modus',
-      'settings_bg_mode_desc': 'Steuerung bleibt bei gesperrtem Bildschirm aktiv. Verhindert Verbindungsabbrüche. (Verbraucht etwas mehr Akku)',
+      'settings_bg_mode_desc':
+          'Steuerung bleibt bei gesperrtem Bildschirm aktiv. Verhindert Verbindungsabbrüche. (Verbraucht etwas mehr Akku)',
       'stop': 'NOTHALT',
       'stop_all': 'NOT-AUS',
       'tab_general': 'ALLGEMEIN',
@@ -121,34 +126,44 @@ class L10n {
       'tab_tuning': 'FEINABSTIMMUNG',
       'take_picture': 'Foto aufnehmen',
       'target': 'SOLL',
-      'template_circuit_cube': 'Belegung:\n• Port A: Antrieb\n• Port B/C: Licht (fahrtabhängig)\nVerbindung: BLE-Scan.\n\nTipp:\nHalte die Lok in der Liste lange gedrückt, um die Einstellungen und diesen Infokasten zu bearbeiten',
-      'template_lego_duplo': 'Einfacher Antrieb (A), Licht & Sound intern',
-      'template_lego_duplo': 'Duplo-Lok, ohne Ports.\n\nTipp:\nHalte die Lok in der Liste lange gedrückt, um die Einstellungen und diesen Infokasten zu bearbeiten',
-      'template_lego_hub': 'Standard-Belegung:\n• Port A: Antrieb\n• Port B: Licht/Motor\nVerbindung: BLE-Scan.\n\nTipp:\nHalte die Lok in der Liste lange gedrückt, um die Einstellungen und diesen Infokasten zu bearbeiten',
-      'template_mould_king': 'Standard-Belegung:\n• Port A: Antrieb\n• Port B/C: Licht (fahrtabhängig)\n• Port D: evt. 2. Antrieb (invertiert)\nVerbindung: BLE-Scan.\n\nTipp:\nHalte die Lok in der Liste lange gedrückt, um die Einstellungen und diesen Infokasten zu bearbeiten',
-      'template_mould_king_classic': 'Standard-Belegung:\n• Port A: Antrieb\n• Port B/C: Licht (fahrtabhängig)\n• Port D: evt. 2. Antrieb (invertiert)\nVerbindung: Broadcast-Modus.\n\nTipp:\nHalte die Lok in der Liste lange gedrückt, um die Einstellungen und diesen Infokasten zu bearbeiten',
-      'template_mould_king_rwy_controller': 'FUNKTIONIERT NOCH NICHT\nNur Motor, kein Licht',
-      'template_pybricks_hub': 'FUNKTIONIERT (NOCH) NICHT\nStandard-Belegung:\n• Port A: Antrieb\n• Port B: Licht/Motor\nVerbindung: BLE-Scan.\n\nTipp:\nHalte die Lok in der Liste lange gedrückt, um die Einstellungen und diesen Infokasten zu bearbeiten',
+      'template_circuit_cube':
+          'Belegung:\n• Port A: Antrieb\n• Port B/C: Licht (fahrtabhängig)\nVerbindung: BLE-Scan.\n\nTipp:\nHalte die Lok in der Liste lange gedrückt, um die Einstellungen und diesen Infokasten zu bearbeiten',
+      'template_lego_duplo':
+          'Duplo-Lok, ohne Ports.\n\nTipp:\nHalte die Lok in der Liste lange gedrückt, um die Einstellungen und diesen Infokasten zu bearbeiten',
+      'template_lego_hub':
+          'Standard-Belegung:\n• Port A: Antrieb\n• Port B: Licht/Motor\nVerbindung: BLE-Scan.\n\nTipp:\nHalte die Lok in der Liste lange gedrückt, um die Einstellungen und diesen Infokasten zu bearbeiten',
+      'template_mould_king':
+          'Standard-Belegung:\n• Port A: Antrieb\n• Port B/C: Licht (fahrtabhängig)\n• Port D: evt. 2. Antrieb (invertiert)\nVerbindung: BLE-Scan.\n\nTipp:\nHalte die Lok in der Liste lange gedrückt, um die Einstellungen und diesen Infokasten zu bearbeiten',
+      'template_mould_king_classic':
+          'Standard-Belegung:\n• Port A: Antrieb\n• Port B/C: Licht (fahrtabhängig)\n• Port D: evt. 2. Antrieb (invertiert)\nVerbindung: Broadcast-Modus.\n\nTipp:\nHalte die Lok in der Liste lange gedrückt, um die Einstellungen und diesen Infokasten zu bearbeiten',
+      'template_mould_king_rwy_controller':
+          'FUNKTIONIERT NOCH NICHT\nNur Motor, kein Licht',
+      'template_pybricks_hub':
+          'FUNKTIONIERT (NOCH) NICHT\nStandard-Belegung:\n• Port A: Antrieb\n• Port B: Licht/Motor\nVerbindung: BLE-Scan.\n\nTipp:\nHalte die Lok in der Liste lange gedrückt, um die Einstellungen und diesen Infokasten zu bearbeiten',
       'theme_dark': 'Dunkel',
       'theme_light': 'Hell',
       'theme_system': 'System',
       'tuning_acceleration': 'Beschleunigung',
       'tuning_auto_light': 'Automatisches Licht',
-      'tuning_auto_light_help': 'Aktiviert das fahrtrichtungsabhängige Umpolen an Port B für BicolorLEDs',
+      'tuning_auto_light_help':
+          'Aktiviert das fahrtrichtungsabhängige Umpolen an Port B für BicolorLEDs',
       'tuning_brake': 'Bremskraft',
       'tuning_delta_step': 'Stufensprung (+/- Tasten)',
       'tuning_driving_behavior': 'FAHRVERHALTEN',
       'tuning_general_settings': 'Allgemeine Einstellungen',
       'tuning_hardware_title': 'Hardware und Ports',
-      'tuning_hardware_subtitle': 'Weise jedem Anschluss der Akkubox eine Funktion zu.',
+      'tuning_hardware_subtitle':
+          'Weise jedem Anschluss der Akkubox eine Funktion zu.',
       'tuning_hardware_label': 'Beschriftung (z.B. Hupe)',
       'tuning_hardware_key': 'Welche Taste?',
       'tuning_hardware_channel': 'Welcher Kanal?',
       'tuning_invert_direction': 'Richtung invertieren',
-      'tuning_invert_direction_help': 'Kehrt die Standard-Laufrichtung des Motors in der App um',
+      'tuning_invert_direction_help':
+          'Kehrt die Standard-Laufrichtung des Motors in der App um',
       'tuning_limits': 'Geschwindigkeitsgrenzen',
       'tuning_pfx_title': 'PFx-Action-Buttons',
-      'tuning_pfx_subtitle': 'Lege eigene Knöpfe für Sounds und Lichter auf Kanal 2, 3 oder 4 an.',
+      'tuning_pfx_subtitle':
+          'Lege eigene Knöpfe für Sounds und Lichter auf Kanal 2, 3 oder 4 an.',
       'tuning_profile_1': 'PROFIL I (Solo-Fahrt)',
       'tuning_profile_2': 'PROFIL II (Fahrt unter Last)',
       'tuning_ramp_delay': 'Trägheit [ms]',
@@ -156,7 +171,8 @@ class L10n {
       'tuning_reverse': 'Rückwärts-Limit',
       'tuning_speed_levels': 'FAHRSTUFEN',
       "ui_auto_scale": "Automatische Skalierung",
-      "ui_auto_scale_desc": "Passt die App-Größe automatisch an dein Display an.",
+      "ui_auto_scale_desc":
+          "Passt die App-Größe automatisch an dein Display an.",
       "ui_scaling_manual": "Manuelle Skalierung",
       'unknown_device': 'Unbekanntes Gerät',
       'unknown_protocol': 'Unbekanntes Protokoll:',
@@ -165,18 +181,40 @@ class L10n {
       'workshop_add': 'NEUE LOK ANLEGEN',
       'workshop_edit': 'LOK EDITIEREN',
       'workshop_edit_save': 'SPEICHERN',
-
-
-
+      'close': 'Schließen',
+      'consist': 'Traktion',
+      'consist_dissolve': 'Traktion auflösen (Entkoppeln)',
+      'consist_create': 'Traktion bilden (Lok ankoppeln)...',
+      'consist_no_candidates': 'Keine weiteren Loks zum Ankoppeln verfügbar.',
+      'consist_couple_title': 'Lok ankoppeln',
+      'consist_select_slave': 'Wähle eine Lokomotive als Slave aus:',
+      'consist_back_to_back': 'Rücken an Rücken',
+      'consist_back_to_back_desc': 'Fahrtrichtung umkehren (z.B. Wendezug)',
+      'consist_couple_btn': 'Ankoppeln',
+      'consist_coupled': 'angekoppelt an',
+      'consist_decoupled_single': 'Lok entkoppelt von',
+      'consist_decoupled_all': 'Alle Loks entkoppelt von',
+      'consist_trim': 'Trimmung',
+      'consist_trim_title': 'Trimmung (Geschwindigkeitsabgleich)',
+      'consist_reversed': '(gedreht)',
+      'consist_reconnect': 'Neu verbinden',
+      'consist_reconnect_failed': 'Verbindung fehlgeschlagen zu',
+      'consist_reset_trim': 'Auf 0% zurücksetzen',
+      'consist_manage_tooltip': 'Traktion verwalten',
+      'consist_battery_lowest': 'Niedrigster Akkustand im Verbund',
+      'battery_level': 'Akkustand',
+      'tuning_light_fade': 'Licht-Aufblendzeit (Soft-Fade)',
     },
     'en': {
       'about': 'About',
-      'about_credits_text': 'Special thanks to J0EK3R (Ivan Murvai)\nfor reverse engineering the Mould King 4.0/6.0 protocol.',
+      'about_credits_text':
+          'Special thanks to J0EK3R (Ivan Murvai)\nfor reverse engineering the Mould King 4.0/6.0 protocol.',
       'about_credits_title': 'Credits & Acknowledgments:',
-      'about_description': 'A free open-source project for brick enthusiasts.\n\n'
-                        'Licensed under GNU GPL v3.\n\n'
-                        'This project is not affiliated with, authorized, or endorsed by any of the mentioned manufacturers. All brand names are used solely for the purpose of describing technical compatibility and ensuring interoperability.\n\n'
-                        'This software is provided "as-is" without any warranty or liability for damages to the hardware used (e.g., hubs, motors, remote controls).',      
+      'about_description':
+          'A free open-source project for brick enthusiasts.\n\n'
+          'Licensed under GNU GPL v3.\n\n'
+          'This project is not affiliated with, authorized, or endorsed by any of the mentioned manufacturers. All brand names are used solely for the purpose of describing technical compatibility and ensuring interoperability.\n\n'
+          'This software is provided "as-is" without any warranty or liability for damages to the hardware used (e.g., hubs, motors, remote controls).',
       'about_github_btn': 'View Source on GitHub',
       'accessories': 'Accessories:',
       'actual': 'ACTUAL',
@@ -189,12 +227,14 @@ class L10n {
       'btn_save': 'Save',
       'btn_start_scan': 'FIND HUBS',
       'buwizz_power_title': 'BuWizz Power Mode',
-      'buwizz_power_subtitle': 'Takes effect only with a new connection.\nCaution: Higher voltages used at your own risk!',
+      'buwizz_power_subtitle':
+          'Takes effect only with a new connection.\nCaution: Higher voltages used at your own risk!',
       'buwizz_power_slow': 'Slow (approx. 5.2V)',
       'buwizz_power_normal': 'Normal (approx. 7.2V - Standard)',
       'buwizz_power_fast': 'Fast (approx. 9.2V)',
       'buwizz_power_ludicrous': 'Ludicrous (approx. 11.2V)',
-      'buwizz_power_warning': 'Increased voltage can lead to overheating and destroy standard motors.',
+      'buwizz_power_warning':
+          'Increased voltage can lead to overheating and destroy standard motors.',
       'cancel': 'Cancel',
       'channel': 'Channel',
       'choose_picture': 'Choose Picture',
@@ -210,7 +250,8 @@ class L10n {
       'diagnosis': 'Diagnose',
       'disconnect': 'DISCONNECT SAFELY',
       'display_always_on': 'Keep Display On',
-      'display_always_on_desc': 'Screen stays on only while at least one train is connected.',
+      'display_always_on_desc':
+          'Screen stays on only while at least one train is connected.',
       'edit': 'Edit',
       'export': 'Export Backup',
       'fanfare': 'Fanfare',
@@ -233,7 +274,6 @@ class L10n {
       'label_name': 'Train Name',
       'label_notes': 'Notes',
       'label_photo': 'Pick Photo',
-      'label_protocol': 'Protocol',
       'label_protocol': 'Protocol / Hub Type',
       'lang_changed': 'Language changed',
       'light': 'Light',
@@ -242,7 +282,8 @@ class L10n {
       'list': 'Train List',
       'mould_king_classic': 'Mould King Classic (4.0)',
       'mould_king_classic_desc': 'Broadcast control for older 4.0 hubs (Dino)',
-      'msg_incomplete': 'Please select protocol and enter MAC address if necessary!',
+      'msg_incomplete':
+          'Please select protocol and enter MAC address if necessary!',
       'msg_scan_error': 'Scan error',
       'new_action': 'New PFx Action',
       'new_button': 'New Button',
@@ -256,11 +297,11 @@ class L10n {
       'panel_mode_manual': 'Manual (+/-)',
       'panel_profile_1': 'Profile I (Solo)',
       'panel_profile_2': 'Profile II (Load)',
-      'pfx_button_1': 'Red Button Left', 
-      'pfx_button_2': 'Red Button Right', 
-      'pfx_button_3': 'Left Dial Up', 
-      'pfx_button_4': 'Left Dial Down', 
-      'pfx_button_5': 'Right Dial Up', 
+      'pfx_button_1': 'Red Button Left',
+      'pfx_button_2': 'Red Button Right',
+      'pfx_button_3': 'Left Dial Up',
+      'pfx_button_4': 'Left Dial Down',
+      'pfx_button_5': 'Right Dial Up',
       'pfx_button_6': 'Right Dial Down',
       'port_door': 'Door (Polarity Switch)',
       'port_light': 'Light',
@@ -268,15 +309,18 @@ class L10n {
       'port_motor': 'Motor',
       'port_motor_inv': 'Motor (Inverted)',
       'port_none': 'None',
+      'port_max_brightness': 'Maximum Brightness',
       'protocol_mk_classic': 'Mould King (Classic / Broadcast)',
       'protocol_mk_modern': 'Mould King (Modern / BLE)',
       'readme': 'Manual',
-      'scan_not_required': 'Broadcast Mode: No scan or pairing required for this hub.',
+      'scan_not_required':
+          'Broadcast Mode: No scan or pairing required for this hub.',
       'scan_running': 'Scanning...',
       'select_train': 'Please select a train from the list',
       'settings': 'Settings',
       'settings_bg_mode': 'Pocket Mode',
-      'settings_bg_mode_desc': 'Control remains active when the screen is locked. Prevents connection drops. (Uses more battery)',
+      'settings_bg_mode_desc':
+          'Control remains active when the screen is locked. Prevents connection drops. (Uses more battery)',
       'stop': 'STOP',
       'stop_all': 'Emergency Stop',
       'tab_general': 'GENERAL',
@@ -284,31 +328,40 @@ class L10n {
       'tab_tuning': 'TUNING',
       'take_picture': 'Take Picture',
       'target': 'TARGET',
-      'template_circuit_cube': 'Assignment:\n• Port A: Drive\n• Port B/C: Light (Auto-Light)\n\nTip: Press and hold the locomotive in the list to edit the settings and this info box.',
+      'template_circuit_cube':
+          'Assignment:\n• Port A: Drive\n• Port B/C: Light (Auto-Light)\n\nTip: Press and hold the locomotive in the list to edit the settings and this info box.',
       'template_lego_duplo': 'Simple drive (A), internal light & sound',
-      'template_lego_hub': 'Standard Assignment:\n• Port A: Drive\n• Port B: Light/Drive\nConnection: BLE-Scan.\n\nTip: Press and hold the locomotive in the list to edit the settings and this info box.',
-      'template_mould_king': 'Standard Assignment:\n• Port A: Drive\n• Port B/C: Light (Auto-Light)\n• Port D: poss. 2nd Drive (inverted)\nConnection: BLE-Scan.\n\nTip: Press and hold the locomotive in the list to edit the settings and this info box.',
-      'template_mould_king_classic': 'Standard Assignment:\n• Port A: Drive\n• Port B/C: Licht (Auto-Light)\n• Port D: evt. 2. Antrieb (invertiert)\nConnection: Broadcast.\n\nTip: Press and hold the locomotive in the list to edit the settings and this info box.',
-      'template_mould_king_rwy_controller': 'CURRENTLY NOT WORKING\nOnly motor, no light',
-      'template_pybricks_hub': 'CURRENTLY NOT WORKING\nStandard Assignment:\n• Port A: Drive\n• Port B: Light/Drive\nConnection: BLE-Scan.\n\nTip: Press and hold the locomotive in the list to edit the settings and this info box.',
+      'template_lego_hub':
+          'Standard Assignment:\n• Port A: Drive\n• Port B: Light/Drive\nConnection: BLE-Scan.\n\nTip: Press and hold the locomotive in the list to edit the settings and this info box.',
+      'template_mould_king':
+          'Standard Assignment:\n• Port A: Drive\n• Port B/C: Light (Auto-Light)\n• Port D: poss. 2nd Drive (inverted)\nConnection: BLE-Scan.\n\nTip: Press and hold the locomotive in the list to edit the settings and this info box.',
+      'template_mould_king_classic':
+          'Standard Assignment:\n• Port A: Drive\n• Port B/C: Licht (Auto-Light)\n• Port D: evt. 2. Antrieb (invertiert)\nConnection: Broadcast.\n\nTip: Press and hold the locomotive in the list to edit the settings and this info box.',
+      'template_mould_king_rwy_controller':
+          'CURRENTLY NOT WORKING\nOnly motor, no light',
+      'template_pybricks_hub':
+          'CURRENTLY NOT WORKING\nStandard Assignment:\n• Port A: Drive\n• Port B: Light/Drive\nConnection: BLE-Scan.\n\nTip: Press and hold the locomotive in the list to edit the settings and this info box.',
       'theme_dark': 'dark',
       'theme_light': 'light',
       'theme_system': 'System',
       'tuning_acceleration': 'Acceleration',
       'tuning_auto_light': 'Automatic Light',
-      'tuning_auto_light_help': 'Activates the direction-dependent polarity reversal at Port B for bicolor LEDs',
+      'tuning_auto_light_help':
+          'Activates the direction-dependent polarity reversal at Port B for bicolor LEDs',
       'tuning_brake': 'Braking Force',
       'tuning_delta_step': 'Step Size (+/- Buttons)',
       'tuning_driving_behavior': 'DRIVING BEHAVIOR',
       'tuning_general_settings': 'General Settings',
       'tuning_hardware_title': 'Hardware & Ports',
-      'tuning_hardware_subtitle': 'Assign a function to each port of the battery box.',
+      'tuning_hardware_subtitle':
+          'Assign a function to each port of the battery box.',
       'tuning_hardware_label': 'Label (e.g., Horn)',
       'tuning_hardware_key': 'Which button?',
       'tuning_hardware_channel': 'Which channel?',
       'tuning_limits': 'Speed Limits',
       'tuning_pfx_title': 'PFx Action Buttons',
-      'tuning_pfx_subtitle': 'Create custom buttons for sounds and lights on channel 2, 3, or 4.',
+      'tuning_pfx_subtitle':
+          'Create custom buttons for sounds and lights on channel 2, 3, or 4.',
       'tuning_profile_1': 'PROFILE I (Solo-Drive)',
       'tuning_profile_2': 'PROFILE II (Under Load)',
       'tuning_ramp_delay': 'Inertia [ms]',
@@ -316,7 +369,8 @@ class L10n {
       'tuning_reverse': 'Max Reverse Limit',
       'tuning_speed_levels': 'Speed Levels (Presets)',
       "ui_auto_scale": "Auto-Scaling",
-      "ui_auto_scale_desc": "Automatically adjusts the app size to fit your screen.",
+      "ui_auto_scale_desc":
+          "Automatically adjusts the app size to fit your screen.",
       "ui_scaling_manual": "Manual Scaling",
       'unknown_device': 'Unknown Device',
       'unknown_protocol': 'Unknown Protocol:',
@@ -325,8 +379,30 @@ class L10n {
       'workshop_add': 'ADD NEW TRAIN',
       'workshop_edit': 'EDIT TRAIN',
       'workshop_edit_save': 'Save',
-
-    }
+      'close': 'Close',
+      'consist': 'Consist',
+      'consist_dissolve': 'Dissolve consist (Uncouple)',
+      'consist_create': 'Create consist (Couple loco)...',
+      'consist_no_candidates': 'No other locomotives available to couple.',
+      'consist_couple_title': 'Couple locomotive',
+      'consist_select_slave': 'Select a locomotive as slave:',
+      'consist_back_to_back': 'Back to back',
+      'consist_back_to_back_desc': 'Reverse direction (e.g. push-pull train)',
+      'consist_couple_btn': 'Couple',
+      'consist_coupled': 'coupled to',
+      'consist_decoupled_single': 'Locomotive uncoupled from',
+      'consist_decoupled_all': 'All locomotives uncoupled from',
+      'consist_trim': 'Trim',
+      'consist_trim_title': 'Trim (speed synchronization)',
+      'consist_reversed': '(reversed)',
+      'consist_reconnect': 'Reconnect',
+      'consist_reconnect_failed': 'Connection failed to',
+      'consist_reset_trim': 'Reset to 0%',
+      'consist_manage_tooltip': 'Manage consist',
+      'consist_battery_lowest': 'Lowest battery in consist',
+      'battery_level': 'Battery level',
+      'tuning_light_fade': 'Light Fading Duration (Soft-Fade)',
+    },
   };
 
   static String tr(String key) {

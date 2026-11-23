@@ -216,6 +216,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get light => 'Light';
 
   @override
+  String get smoke => 'Steam';
+
+  @override
   String get light_b => 'Light B';
 
   @override
@@ -299,7 +302,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get port_light => 'Light';
 
   @override
+  String get port_light_inv => 'Light (Inverted)';
+
+  @override
   String get port_light_dir => 'Light (Directional)';
+
+  @override
+  String get port_light_dir_inv => 'Light (Directional, Inverted)';
 
   @override
   String get port_motor => 'Motor';
@@ -308,7 +317,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get port_motor_inv => 'Motor (Inverted)';
 
   @override
+  String get port_smoke => 'Steam';
+
+  @override
   String get port_none => 'None';
+
+  @override
+  String get port_max_brightness => 'Maximum Brightness';
 
   @override
   String get protocol_mk_classic => 'Mould King (Classic / Broadcast)';
@@ -508,4 +523,92 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get workshop_edit_save => 'Save';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get consist => 'Consist';
+
+  @override
+  String get consist_dissolve => 'Dissolve consist (Uncouple)';
+
+  @override
+  String get consist_create => 'Create consist (Couple loco)...';
+
+  @override
+  String get consist_no_candidates =>
+      'No other locomotives available to couple.';
+
+  @override
+  String get consist_couple_title => 'Couple locomotive';
+
+  @override
+  String get consist_select_slave => 'Select a locomotive as slave:';
+
+  @override
+  String get consist_back_to_back => 'Back to back';
+
+  @override
+  String get consist_back_to_back_desc =>
+      'Reverse direction (e.g. push-pull train)';
+
+  @override
+  String get consist_couple_btn => 'Couple';
+
+  @override
+  String get consist_coupled => 'coupled to';
+
+  @override
+  String get consist_decoupled_single => 'Locomotive uncoupled from';
+
+  @override
+  String get consist_decoupled_all => 'All locomotives uncoupled from';
+
+  @override
+  String get consist_trim => 'Trim';
+
+  @override
+  String get consist_trim_title => 'Trim (speed synchronization)';
+
+  @override
+  String get consist_reversed => '(reversed)';
+
+  @override
+  String get consist_reconnect => 'Reconnect';
+
+  @override
+  String get consist_reconnect_failed => 'Connection failed to';
+
+  @override
+  String get consist_reset_trim => 'Reset to 0%';
+
+  @override
+  String get consist_manage_tooltip => 'Manage consist';
+
+  @override
+  String get consist_battery_lowest => 'Lowest battery in consist';
+
+  @override
+  String get battery_level => 'Battery level';
+
+  @override
+  String get tuning_light_fade => 'Light Fading Duration (Soft-Fade)';
+
+  @override
+  String get tuning_battery_cutoff_title => 'Battery Protection (Auto-Stop)';
+
+  @override
+  String get tuning_battery_cutoff_subtitle =>
+      'Gently ramps speed to 0 when battery level drops below threshold. Manual driving remains possible.';
+
+  @override
+  String get tuning_battery_cutoff_disabled => 'Off (Disabled)';
+
+  @override
+  String get tuning_battery_cutoff_recommended => 'Recommended for LiPos';
+
+  @override
+  String get battery_cutoff_triggered =>
+      'Battery protection: Train was gently stopped due to low battery';
 }
